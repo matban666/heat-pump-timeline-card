@@ -9,6 +9,7 @@ class HeatPumpTimelineCard extends HTMLElement {
     this._customTimeRange = null; // { startTime, endTime }
     this._hiddenLines = new Set(); // Track which lines are hidden
     this._resizeTimeout = null;
+    this._hasMeasuredHeight = false; // Track if we've measured actual container height in panel mode
   }
 
   connectedCallback() {
@@ -18,6 +19,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       clearTimeout(this._resizeTimeout);
       this._resizeTimeout = setTimeout(() => {
         if (this._data && this.detectPanelView()) {
+          this._hasMeasuredHeight = false; // Reset measurement flag on resize
           this.renderChart(this._data);
         }
       }, 250);
@@ -88,6 +90,7 @@ class HeatPumpTimelineCard extends HTMLElement {
     if (!this._hass) return;
 
     this._loading = true;
+    this._hasMeasuredHeight = false; // Reset measurement flag for new data
     this.render();
 
     try {
@@ -1159,13 +1162,18 @@ class HeatPumpTimelineCard extends HTMLElement {
     // Calculate height: use viewport height in panel mode, otherwise use config height
     let height;
     if (isPanel) {
-      // Calculate available height: viewport minus typical header (56px) and some padding
-      const viewportHeight = window.innerHeight;
-      const headerHeight = 56;
-      const controlsHeight = 120; // Approximate height for controls, legend, info panel
-      height = viewportHeight - headerHeight - controlsHeight;
-      // Ensure minimum height
-      height = Math.max(height, 400);
+      // In panel mode, try to measure the actual available height
+      // First render pass may not have accurate measurements, so we estimate generously
+      const chartContainer = this.shadowRoot?.querySelector('.chart-container');
+      if (chartContainer && chartContainer.clientHeight > 0) {
+        // Use measured height from container
+        height = chartContainer.clientHeight;
+      } else {
+        // Initial render: use a generous estimate
+        const viewportHeight = window.innerHeight;
+        // More generous calculation: viewport minus header and controls (roughly 200px total)
+        height = Math.max(viewportHeight - 200, 400);
+      }
     } else {
       height = this.config.height;
     }
@@ -1276,12 +1284,17 @@ class HeatPumpTimelineCard extends HTMLElement {
           position: relative;
           width: 100%;
           flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
           min-height: 0;
+          display: flex;
+          flex-direction: column;
         }
-        svg { display: block; width: 100%; height: auto; max-width: 100%; }
+        svg {
+          display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          flex: 1;
+        }
         .axis-label { font-size: 12px; fill: var(--secondary-text-color); }
         .axis-line { stroke: var(--divider-color); stroke-width: 1; }
         .grid-line { stroke: var(--divider-color); stroke-width: 1; opacity: 0.3; }
@@ -1406,6 +1419,24 @@ class HeatPumpTimelineCard extends HTMLElement {
     this.setupLineTooltips(data, scaleX, scaleYTemp, timeExtent);
     this.setupDHWTooltips();
     this.setupZoomSelection(data, scaleX, padding, width);
+
+    // In panel mode, if we used an estimated height, trigger a second render with measured height
+    if (isPanel && !this._hasMeasuredHeight) {
+      requestAnimationFrame(() => {
+        const chartContainer = this.shadowRoot?.querySelector('.chart-container');
+        if (chartContainer && chartContainer.clientHeight > 0) {
+          const measuredHeight = chartContainer.clientHeight;
+          // Only re-render if the measured height is significantly different
+          if (Math.abs(measuredHeight - height) > 50) {
+            this._hasMeasuredHeight = true;
+            this.renderChart(data);
+          }
+        }
+      });
+    } else if (!isPanel) {
+      // Reset flag when not in panel mode
+      this._hasMeasuredHeight = false;
+    }
   }
 
   renderGrid(scaleX, scaleY, timeLabels, tempMin, tempMax, padding, width, height) {
