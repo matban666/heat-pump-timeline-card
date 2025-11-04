@@ -304,7 +304,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       { label: '6', value: 6 },
       { label: 'D', value: 24 },
       { label: 'W', value: 168 },
-      { label: 'M', value: 720 },
+      // { label: 'M', value: 720 }, // Commented out - choppy performance
     ];
 
     // Check if we're in custom time range mode
@@ -339,6 +339,12 @@ class HeatPumpTimelineCard extends HTMLElement {
     return `
       <div style="padding: 12px 16px; background: var(--secondary-background-color); border-bottom: 1px solid var(--divider-color);">
         <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; gap: 4px;">
+            <button class="nav-btn" data-shift="-1" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;&lt;</button>
+            <button class="nav-btn" data-shift="-0.25" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;</button>
+            <button class="nav-btn" data-shift="0.25" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;</button>
+            <button class="nav-btn" data-shift="1" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;&gt;</button>
+          </div>
           <div style="font-weight: 500;">Time Range:</div>
           ${timeRanges.map(range => `
             <button
@@ -383,6 +389,45 @@ class HeatPumpTimelineCard extends HTMLElement {
         this.fetchData();
       });
     }
+
+    // Navigation buttons
+    const navBtns = this.shadowRoot.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const shiftFraction = parseFloat(e.target.dataset.shift);
+        this.shiftTimeWindow(shiftFraction);
+      });
+    });
+  }
+
+  shiftTimeWindow(shiftFraction) {
+    // Get current time window
+    let currentStart, currentEnd;
+    if (this._customTimeRange) {
+      currentStart = new Date(this._customTimeRange.startTime);
+      currentEnd = new Date(this._customTimeRange.endTime);
+    } else {
+      currentEnd = new Date();
+      currentStart = new Date(currentEnd.getTime() - this.config.hours * 60 * 60 * 1000);
+    }
+
+    // Calculate window width in milliseconds
+    const windowWidth = currentEnd.getTime() - currentStart.getTime();
+
+    // Calculate shift amount (fraction of window width)
+    const shiftAmount = windowWidth * shiftFraction;
+
+    // Calculate new time range
+    const newStart = new Date(currentStart.getTime() + shiftAmount);
+    const newEnd = new Date(currentEnd.getTime() + shiftAmount);
+
+    // Set custom time range and fetch data
+    this._customTimeRange = {
+      startTime: newStart,
+      endTime: newEnd
+    };
+
+    this.fetchData();
   }
 
   setupLegendListeners() {
