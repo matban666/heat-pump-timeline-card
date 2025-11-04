@@ -1509,16 +1509,48 @@ class HeatPumpTimelineCard extends HTMLElement {
 
   generateTimeLabels(startTime, endTime, hours) {
     const labels = [];
-    const duration = endTime.getTime() - startTime.getTime();
-    const numLabels = Math.min(hours * 2, 12); // Max 12 labels
+    const durationMs = endTime.getTime() - startTime.getTime();
+    const durationHours = durationMs / (1000 * 60 * 60);
+    const durationMinutes = durationMs / (1000 * 60);
+    const durationDays = durationMs / (1000 * 60 * 60 * 24);
+
+    // Determine appropriate number of labels based on duration
+    let numLabels;
+    if (durationMinutes < 30) {
+      numLabels = 6; // Every 5 minutes for < 30 min
+    } else if (durationHours < 3) {
+      numLabels = 8; // Good granularity for short periods
+    } else if (durationHours < 12) {
+      numLabels = 10;
+    } else if (durationHours < 48) {
+      numLabels = 12;
+    } else if (durationDays < 14) {
+      numLabels = 14;
+    } else {
+      numLabels = Math.min(Math.ceil(durationDays / 2), 20); // One label per 2 days, max 20
+    }
 
     for (let i = 0; i <= numLabels; i++) {
-      const time = new Date(startTime.getTime() + (duration * i / numLabels));
-      const label = hours <= 1
-        ? `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`
-        : hours <= 24
-        ? `${time.getHours().toString().padStart(2, '0')}:00`
-        : `${time.getDate()}/${time.getMonth() + 1}`;
+      const time = new Date(startTime.getTime() + (durationMs * i / numLabels));
+
+      // Determine format based on actual duration
+      let label;
+      if (durationMinutes < 30) {
+        // Show HH:MM:SS for very short durations (< 30 minutes)
+        label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
+      } else if (durationHours < 3) {
+        // Show HH:MM for short durations (< 3 hours)
+        label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+      } else if (durationHours < 48) {
+        // Show HH:MM for medium durations (< 48 hours)
+        label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
+      } else if (durationDays < 90) {
+        // Show DD/MM for longer durations (< 90 days)
+        label = `${time.getDate().toString().padStart(2, '0')}/${(time.getMonth() + 1).toString().padStart(2, '0')}`;
+      } else {
+        // Show DD/MM/YY for very long durations (>= 90 days)
+        label = `${time.getDate().toString().padStart(2, '0')}/${(time.getMonth() + 1).toString().padStart(2, '0')}/${time.getFullYear().toString().slice(-2)}`;
+      }
 
       labels.push({ time, label });
     }
