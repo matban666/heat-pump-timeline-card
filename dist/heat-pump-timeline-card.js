@@ -405,7 +405,7 @@ class HeatPumpTimelineCard extends HTMLElement {
             <button class="zoom-btn" data-zoom="0.5" title="Zoom in to 50% (middle half)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">+</button>
             <button class="zoom-btn" data-zoom="2" title="Zoom out to 200% (double width)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">-</button>
           </div>
-          <button class="refresh-button" title="Refresh data" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto; white-space: nowrap; font-size: 16px;">
+          <button class="refresh-button" title="Refresh data" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto; white-space: nowrap;">
             ↻
           </button>
         </div>
@@ -1233,7 +1233,7 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Build SVG content
     const svg = `
-      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
         <!-- Grid lines -->
         ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
 
