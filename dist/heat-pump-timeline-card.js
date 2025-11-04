@@ -345,6 +345,10 @@ class HeatPumpTimelineCard extends HTMLElement {
             <button class="nav-btn" data-shift="0.25" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;</button>
             <button class="nav-btn" data-shift="1" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;&gt;</button>
           </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="zoom-btn" data-zoom="0.5" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">+</button>
+            <button class="zoom-btn" data-zoom="2" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">-</button>
+          </div>
           <div style="font-weight: 500;">Time Range:</div>
           ${timeRanges.map(range => `
             <button
@@ -398,6 +402,15 @@ class HeatPumpTimelineCard extends HTMLElement {
         this.shiftTimeWindow(shiftFraction);
       });
     });
+
+    // Zoom buttons
+    const zoomBtns = this.shadowRoot.querySelectorAll('.zoom-btn');
+    zoomBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const zoomFactor = parseFloat(e.target.dataset.zoom);
+        this.zoomTimeWindow(zoomFactor);
+      });
+    });
   }
 
   shiftTimeWindow(shiftFraction) {
@@ -420,6 +433,39 @@ class HeatPumpTimelineCard extends HTMLElement {
     // Calculate new time range
     const newStart = new Date(currentStart.getTime() + shiftAmount);
     const newEnd = new Date(currentEnd.getTime() + shiftAmount);
+
+    // Set custom time range and fetch data
+    this._customTimeRange = {
+      startTime: newStart,
+      endTime: newEnd
+    };
+
+    this.fetchData();
+  }
+
+  zoomTimeWindow(zoomFactor) {
+    // Get current time window
+    let currentStart, currentEnd;
+    if (this._customTimeRange) {
+      currentStart = new Date(this._customTimeRange.startTime);
+      currentEnd = new Date(this._customTimeRange.endTime);
+    } else {
+      currentEnd = new Date();
+      currentStart = new Date(currentEnd.getTime() - this.config.hours * 60 * 60 * 1000);
+    }
+
+    // Calculate current window center
+    const currentCenter = (currentStart.getTime() + currentEnd.getTime()) / 2;
+
+    // Calculate current window width
+    const currentWidth = currentEnd.getTime() - currentStart.getTime();
+
+    // Calculate new window width
+    const newWidth = currentWidth * zoomFactor;
+
+    // Calculate new start and end times, centered on the same point
+    const newStart = new Date(currentCenter - newWidth / 2);
+    const newEnd = new Date(currentCenter + newWidth / 2);
 
     // Set custom time range and fetch data
     this._customTimeRange = {
