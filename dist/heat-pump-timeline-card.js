@@ -405,7 +405,7 @@ class HeatPumpTimelineCard extends HTMLElement {
             <button class="zoom-btn" data-zoom="0.5" title="Zoom in to 50% (middle half)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">+</button>
             <button class="zoom-btn" data-zoom="2" title="Zoom out to 200% (double width)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">-</button>
           </div>
-          <button class="refresh-button" title="Refresh data" style="padding: 5px 8px; background: var(--primary-color); color: var(--text-primary-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto; white-space: nowrap; font-size: 16px;">
+          <button class="refresh-button" title="Refresh data" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto; white-space: nowrap; font-size: 16px;">
             ↻
           </button>
         </div>
