@@ -214,8 +214,8 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Credits
 
-Developed by [@matban666](https://github.com/matban666) and Claude Code
-Heavily inspired by [Emoncms](https://emoncms.org/) and [OpenEnergyMonitor](https://openenergymonitor.org/)
+- Developed by [@matban666](https://github.com/matban666) and Claude Code
+- Heavily inspired by [Emoncms](https://emoncms.org/) and [OpenEnergyMonitor](https://openenergymonitor.org/)
 
 ## Screenshots
 
