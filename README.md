@@ -2,7 +2,7 @@
 
 A custom Lovelace card for Home Assistant that displays heat pump performance metrics in an interactive timeline chart with advanced features like zoom, mode tracking, and SCOP calculations.
 
-![Heat Pump Timeline Card](screenshots/example.png)
+![Heat Pump Timeline Card](screenshots/main-view.png)
 
 ## Features
 
@@ -164,4 +164,17 @@ Developed by [@matban666](https://github.com/matban666)
 
 ## Screenshots
 
-Add your screenshots to the `screenshots/` directory and reference them here.
+### Main View
+The interactive timeline chart showing temperature lines, power areas, and DHW mode periods:
+
+![Main View](screenshots/main-view.png)
+
+### Tooltip: Flow and Return Temperatures
+Hover over flow/return temperature lines to see Delta-T and overshoot calculations:
+
+![Flow and Return Tooltip](screenshots/tooltip-flow-and-return.png)
+
+### Tooltip: Power and COP
+Hover over power areas to see electrical input, heat output, and real-time COP:
+
+![Power and COP Tooltip](screenshots/tooltip-power-and-cop.png)
