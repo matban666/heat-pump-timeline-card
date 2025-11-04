@@ -17,7 +17,9 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
   - Room Temp and Setpoint with Overshoot
 - **Step Interpolation** for accurate representation of periodic data
 - **Hover Effects** with line embiggen for better visibility
-- **Flexible Time Ranges** (1 hour, 6 hours, 1 day, 1 week, 1 month, or custom)
+- **Flexible Time Ranges** (1 hour, 6 hours, 1 day, 1 week, or custom zoom/pan)
+- **Timeline Navigation** with pan (<<, <, >, >>) and zoom (+, -) buttons
+- **Dynamic X-Axis Labels** that adapt to the current zoom level
 
 ## Installation
 
@@ -120,18 +122,35 @@ The card calculates Seasonal Coefficient of Performance (SCOP) for:
 - **DHW SCOP**: Efficiency during Domestic Hot Water mode
 - **Combined SCOP**: Overall efficiency across all modes
 
-### Zoom Functionality
+### Navigation and Zoom Controls
 
+**Preset Time Ranges:**
+- **H** - 1 Hour
+- **6** - 6 Hours
+- **D** - 1 Day (24 hours)
+- **W** - 1 Week (7 days)
+
+**Navigation Buttons:**
+- **<<** - Move back one full window
+- **<** - Move back 1/4 window
+- **>** - Move forward 1/4 window
+- **>>** - Move forward one full window
+
+**Zoom Buttons:**
+- **+** - Zoom in to middle 50% of current view
+- **-** - Zoom out to 200% of current view
+
+**Click-and-Drag Zoom:**
 - Click and drag horizontally across the chart to select a time range
 - Release to zoom into that period
-- Click any preset time button (H, 6, D, W, M) to return to standard views
+- Use preset time buttons to return to standard views
 - Custom time window boundaries are displayed at the bottom
 
 ### Smart Tooltips
 
 Hover over any line to see contextual information:
 - **Flow/Return**: Shows both temps, Delta-T, and Overshoot
-- **Power areas**: Shows Electric and Heat Output with COP
+- **Power areas**: Shows Electricity in and Heat Output with COP
 - **Setpoints**: Shows Weather Curve, Flow Setpoint, and Modulation
 - **Room Temp**: Shows Room Temp, Setpoint, and Overshoot
 - **DHW rectangles**: Shows start time, end time, and duration
@@ -142,6 +161,41 @@ When `mode_entity` is configured:
 - DHW periods appear as translucent orange rectangles
 - Hover to see duration and timing
 - SCOP values are calculated separately for each mode
+
+## Historical Data Limitations
+
+This card uses Home Assistant's history API to retrieve sensor data. **The amount of historical data available is determined by your Home Assistant recorder configuration**, not by the card itself.
+
+### Default Behavior
+
+By default, Home Assistant keeps **10 days** of history. This means:
+- You can view up to 10 days of data
+- Older data is automatically purged
+- Attempting to view periods beyond this will show incomplete or no data
+
+### Extending History Retention
+
+To keep more historical data, update your `configuration.yaml`:
+
+```yaml
+recorder:
+  purge_keep_days: 30  # Keep 30 days of history (adjust as needed)
+```
+
+**Important considerations:**
+- More history = larger database size
+- Recommended range: 7-90 days depending on your storage capacity
+- Very long periods (months/years) may require long-term statistics (not currently supported by this card)
+- Restart Home Assistant after changing this setting
+
+### Storage Impact
+
+Each additional day of history increases your database size. Monitor your storage and adjust accordingly:
+- **10 days**: ~500 MB - 2 GB (typical)
+- **30 days**: ~1.5 GB - 6 GB
+- **90 days**: ~4.5 GB - 18 GB
+
+*Actual size depends on the number of entities and update frequency.*
 
 ## Compatibility
 
