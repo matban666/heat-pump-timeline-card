@@ -1186,12 +1186,12 @@ class HeatPumpTimelineCard extends HTMLElement {
       <style>
         :host { display: block; }
         ha-card { padding: 0; position: relative; }
-        .chart-container-wrapper { padding: 16px; }
+        .chart-container-wrapper { padding: 8px; }
         .chart-title {
           text-align: center;
           font-size: 18px;
           font-weight: bold;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
           color: var(--primary-text-color);
         }
         .chart-container { position: relative; width: 100%; }
@@ -1216,10 +1216,11 @@ class HeatPumpTimelineCard extends HTMLElement {
         .legend {
           display: flex;
           justify-content: center;
-          gap: 16px;
+          gap: 12px 16px;
           flex-wrap: wrap;
-          margin-top: 12px;
+          margin-top: 8px;
           font-size: 12px;
+          row-gap: 4px;
         }
         .legend-item {
           display: flex;
@@ -1243,8 +1244,8 @@ class HeatPumpTimelineCard extends HTMLElement {
         .info-panel {
           display: flex;
           justify-content: center;
-          margin-top: 12px;
-          padding: 12px;
+          margin-top: 8px;
+          padding: 8px 12px;
           background: var(--secondary-background-color);
           border-radius: 8px;
         }
