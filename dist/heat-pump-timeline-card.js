@@ -338,39 +338,41 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     return `
       <div style="padding: 12px 16px; background: var(--secondary-background-color); border-bottom: 1px solid var(--divider-color);">
-        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-          ${timeRanges.map(range => {
-            const tooltips = {
-              'H': '1 Hour',
-              '6': '6 Hours',
-              'D': '1 Day (24 hours)',
-              'W': '1 Week (7 days)'
-            };
-            return `
-            <button
-              class="time-range-btn"
-              data-hours="${range.value}"
-              title="${tooltips[range.label]}"
-              style="
-                padding: 6px 12px;
-                background: ${!isCustomRange && this.config.hours === range.value ? 'var(--primary-color)' : 'var(--card-background-color)'};
-                color: ${!isCustomRange && this.config.hours === range.value ? 'var(--text-primary-color)' : 'var(--primary-text-color)'};
-                border: 1px solid var(--divider-color);
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: ${!isCustomRange && this.config.hours === range.value ? '600' : '400'};
-              ">
-              ${range.label}
-            </button>
-          `;
-          }).join('')}
-          <div style="display: flex; gap: 4px; margin-left: 12px;">
+        <div style="display: flex; align-items: center; flex-wrap: wrap;">
+          <div style="display: flex; gap: 4px;">
+            ${timeRanges.map(range => {
+              const tooltips = {
+                'H': '1 Hour',
+                '6': '6 Hours',
+                'D': '1 Day (24 hours)',
+                'W': '1 Week (7 days)'
+              };
+              return `
+              <button
+                class="time-range-btn"
+                data-hours="${range.value}"
+                title="${tooltips[range.label]}"
+                style="
+                  padding: 6px 12px;
+                  background: ${!isCustomRange && this.config.hours === range.value ? 'var(--primary-color)' : 'var(--card-background-color)'};
+                  color: ${!isCustomRange && this.config.hours === range.value ? 'var(--text-primary-color)' : 'var(--primary-text-color)'};
+                  border: 1px solid var(--divider-color);
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: ${!isCustomRange && this.config.hours === range.value ? '600' : '400'};
+                ">
+                ${range.label}
+              </button>
+            `;
+            }).join('')}
+          </div>
+          <div style="display: flex; gap: 4px; margin-left: 20px;">
             <button class="nav-btn" data-shift="-1" title="Move back one full window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;&lt;</button>
             <button class="nav-btn" data-shift="-0.25" title="Move back 1/4 window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;</button>
             <button class="nav-btn" data-shift="0.25" title="Move forward 1/4 window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;</button>
             <button class="nav-btn" data-shift="1" title="Move forward one full window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;&gt;</button>
           </div>
-          <div style="display: flex; gap: 4px;">
+          <div style="display: flex; gap: 4px; margin-left: 20px;">
             <button class="zoom-btn" data-zoom="0.5" title="Zoom in to 50% (middle half)" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">+</button>
             <button class="zoom-btn" data-zoom="2" title="Zoom out to 200% (double width)" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">-</button>
           </div>
