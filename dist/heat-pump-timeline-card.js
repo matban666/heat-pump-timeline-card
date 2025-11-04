@@ -8,6 +8,31 @@ class HeatPumpTimelineCard extends HTMLElement {
     this._isSelecting = false;
     this._customTimeRange = null; // { startTime, endTime }
     this._hiddenLines = new Set(); // Track which lines are hidden
+    this._resizeTimeout = null;
+  }
+
+  connectedCallback() {
+    // Set up resize listener to recalculate chart height when window size changes
+    this._resizeHandler = () => {
+      // Debounce resize events
+      clearTimeout(this._resizeTimeout);
+      this._resizeTimeout = setTimeout(() => {
+        if (this._data && this.detectPanelView()) {
+          this.renderChart(this._data);
+        }
+      }, 250);
+    };
+    window.addEventListener('resize', this._resizeHandler);
+  }
+
+  disconnectedCallback() {
+    // Clean up resize listener
+    if (this._resizeHandler) {
+      window.removeEventListener('resize', this._resizeHandler);
+    }
+    if (this._resizeTimeout) {
+      clearTimeout(this._resizeTimeout);
+    }
   }
 
   setConfig(config) {
@@ -337,9 +362,9 @@ class HeatPumpTimelineCard extends HTMLElement {
     }
 
     return `
-      <div style="padding: 12px 16px; background: var(--secondary-background-color); border-bottom: 1px solid var(--divider-color);">
-        <div style="display: flex; align-items: center; flex-wrap: wrap;">
-          <div style="display: flex; gap: 4px;">
+      <div style="padding: 8px 12px; background: var(--secondary-background-color); border-bottom: 1px solid var(--divider-color); overflow-x: auto;">
+        <div style="display: flex; align-items: center; flex-wrap: nowrap; gap: 8px;">
+          <div style="display: flex; gap: 3px;">
             ${timeRanges.map(range => {
               const tooltips = {
                 'H': '1 Hour',
@@ -353,31 +378,32 @@ class HeatPumpTimelineCard extends HTMLElement {
                 data-hours="${range.value}"
                 title="${tooltips[range.label]}"
                 style="
-                  padding: 6px 12px;
+                  padding: 5px 10px;
                   background: ${!isCustomRange && this.config.hours === range.value ? 'var(--primary-color)' : 'var(--card-background-color)'};
                   color: ${!isCustomRange && this.config.hours === range.value ? 'var(--text-primary-color)' : 'var(--primary-text-color)'};
                   border: 1px solid var(--divider-color);
                   border-radius: 4px;
                   cursor: pointer;
                   font-weight: ${!isCustomRange && this.config.hours === range.value ? '600' : '400'};
+                  white-space: nowrap;
                 ">
                 ${range.label}
               </button>
             `;
             }).join('')}
           </div>
-          <div style="display: flex; gap: 4px; margin-left: 20px;">
-            <button class="nav-btn" data-shift="-1" title="Move back one full window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;&lt;</button>
-            <button class="nav-btn" data-shift="-0.25" title="Move back 1/4 window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&lt;</button>
-            <button class="nav-btn" data-shift="0.25" title="Move forward 1/4 window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;</button>
-            <button class="nav-btn" data-shift="1" title="Move forward one full window" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">&gt;&gt;</button>
+          <div style="display: flex; gap: 3px;">
+            <button class="nav-btn" data-shift="-1" title="Move back one full window" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">&lt;&lt;</button>
+            <button class="nav-btn" data-shift="-0.25" title="Move back 1/4 window" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">&lt;</button>
+            <button class="nav-btn" data-shift="0.25" title="Move forward 1/4 window" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">&gt;</button>
+            <button class="nav-btn" data-shift="1" title="Move forward one full window" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">&gt;&gt;</button>
           </div>
-          <div style="display: flex; gap: 4px; margin-left: 20px;">
-            <button class="zoom-btn" data-zoom="0.5" title="Zoom in to 50% (middle half)" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">+</button>
-            <button class="zoom-btn" data-zoom="2" title="Zoom out to 200% (double width)" style="padding: 6px 10px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500;">-</button>
+          <div style="display: flex; gap: 3px;">
+            <button class="zoom-btn" data-zoom="0.5" title="Zoom in to 50% (middle half)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">+</button>
+            <button class="zoom-btn" data-zoom="2" title="Zoom out to 200% (double width)" style="padding: 5px 8px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; white-space: nowrap;">-</button>
           </div>
-          <button class="refresh-button" title="Refresh data" style="padding: 6px 12px; background: var(--primary-color); color: var(--text-primary-color); border: none; border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto;">
-            Refresh
+          <button class="refresh-button" title="Refresh data" style="padding: 5px 8px; background: var(--primary-color); color: var(--text-primary-color); border: 1px solid var(--divider-color); border-radius: 4px; cursor: pointer; font-weight: 500; margin-left: auto; white-space: nowrap; font-size: 16px;">
+            ↻
           </button>
         </div>
         ${timeBoundariesHTML}
@@ -1102,9 +1128,48 @@ class HeatPumpTimelineCard extends HTMLElement {
     chartContainer.addEventListener('mouseleave', handleMouseLeave);
   }
 
+  detectPanelView() {
+    // Try to detect if we're in a panel (1 card) view
+    // In panel mode, the card's parent hierarchy typically includes view-panel
+    let element = this.parentElement;
+    let depth = 0;
+    const maxDepth = 10;
+
+    while (element && depth < maxDepth) {
+      // Check for panel view indicators
+      if (element.tagName === 'HUI-PANEL-VIEW' ||
+          element.classList?.contains('panel') ||
+          element.getAttribute('type') === 'panel') {
+        return true;
+      }
+      element = element.parentElement;
+      depth++;
+    }
+
+    return false;
+  }
+
   renderChart(data) {
     const width = this.config.width;
-    const height = this.config.height;
+
+    // Detect if we're in a panel view by checking if this is likely the only card
+    // In panel view, we want to fill the viewport height
+    const isPanel = this.detectPanelView();
+
+    // Calculate height: use viewport height in panel mode, otherwise use config height
+    let height;
+    if (isPanel) {
+      // Calculate available height: viewport minus typical header (56px) and some padding
+      const viewportHeight = window.innerHeight;
+      const headerHeight = 56;
+      const controlsHeight = 120; // Approximate height for controls, legend, info panel
+      height = viewportHeight - headerHeight - controlsHeight;
+      // Ensure minimum height
+      height = Math.max(height, 400);
+    } else {
+      height = this.config.height;
+    }
+
     const padding = { top: 40, right: 60, bottom: 60, left: 60 };
 
     const chartWidth = width - padding.left - padding.right;
@@ -1184,17 +1249,38 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; }
-        ha-card { padding: 0; position: relative; }
-        .chart-container-wrapper { padding: 8px; }
+        :host { display: block; height: 100%; }
+        ha-card {
+          padding: 0;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+        .chart-container-wrapper {
+          padding: 8px;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
         .chart-title {
           text-align: center;
           font-size: 18px;
           font-weight: bold;
           margin-bottom: 4px;
           color: var(--primary-text-color);
+          flex-shrink: 0;
         }
-        .chart-container { position: relative; width: 100%; }
+        .chart-container {
+          position: relative;
+          width: 100%;
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 0;
+        }
         svg { display: block; width: 100%; height: auto; max-width: 100%; }
         .axis-label { font-size: 12px; fill: var(--secondary-text-color); }
         .axis-line { stroke: var(--divider-color); stroke-width: 1; }
@@ -1221,6 +1307,7 @@ class HeatPumpTimelineCard extends HTMLElement {
           margin-top: 8px;
           font-size: 12px;
           row-gap: 4px;
+          flex-shrink: 0;
         }
         .legend-item {
           display: flex;
@@ -1248,6 +1335,7 @@ class HeatPumpTimelineCard extends HTMLElement {
           padding: 8px 12px;
           background: var(--secondary-background-color);
           border-radius: 8px;
+          flex-shrink: 0;
         }
         .info-item { text-align: center; padding: 0 20px; }
         .info-label {

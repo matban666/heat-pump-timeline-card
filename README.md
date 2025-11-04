@@ -7,6 +7,7 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
 ## Features
 
 - **Interactive Timeline Chart** with temperature and power data
+- **Auto Full-Height Display** - Automatically fills the viewport when used in Panel (1 card) view
 - **Click-and-Drag Zoom** to focus on specific time periods
 - **DHW Mode Visualization** with translucent orange rectangles showing domestic hot water heating periods
 - **SCOP Calculations** separated by mode (CH, DHW, and Combined)
@@ -20,6 +21,7 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
 - **Flexible Time Ranges** (1 hour, 6 hours, 1 day, 1 week, or custom zoom/pan)
 - **Timeline Navigation** with pan (<<, <, >, >>) and zoom (+, -) buttons
 - **Dynamic X-Axis Labels** that adapt to the current zoom level
+- **Responsive Layout** that adapts to window resizing in real-time
 
 ## Installation
 
@@ -31,7 +33,7 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
 4. **Refresh**: Clear your browser cache (Ctrl+Shift+R)
 5. **Add**: Add the card to your dashboard
 
-💡 **Tip:** This card works best in its own **dedicated dashboard** with a Panel (1 card) view for full-width display. It works in standard Masonry layouts but can feel cramped.
+💡 **Tip:** This card works best in its own **dedicated dashboard** with a Panel (1 card) view. In Panel mode, the card automatically fills the entire viewport height for maximum visibility. It works in standard Masonry layouts but can feel cramped.
 
 📖 **[Detailed Installation Guide](INSTALLATION.md)** - Step-by-step instructions for creating a dedicated dashboard
 
