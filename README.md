@@ -31,9 +31,9 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
 4. **Refresh**: Clear your browser cache (Ctrl+Shift+R)
 5. **Add**: Add the card to your dashboard
 
-💡 **Tip:** This card works best in a **Panel (1 card)** view for full-width display. It works in standard Masonry layouts but can feel cramped.
+💡 **Tip:** This card works best in its own **dedicated dashboard** with a Panel (1 card) view for full-width display. It works in standard Masonry layouts but can feel cramped.
 
-📖 **[Detailed Installation Guide](INSTALLATION.md)** - Step-by-step instructions including Panel view setup
+📖 **[Detailed Installation Guide](INSTALLATION.md)** - Step-by-step instructions for creating a dedicated dashboard
 
 ### Direct Download Link
 

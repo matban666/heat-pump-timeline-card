@@ -79,28 +79,35 @@ Or manually clear your browser cache in browser settings.
 
 ### Step 5: Add to Dashboard
 
-#### Recommended: Use Panel View (Full Width)
+#### Recommended: Create a Dedicated Dashboard (Best Experience)
 
-This card works best in a **Panel (1 card)** view where it can use the full screen width. While it works in standard Masonry layouts, the chart can feel cramped.
+This card works best in its own dedicated **Panel (1 card)** dashboard where it can use the full screen width. This gives you the best visualization experience.
 
-**To create a Panel view:**
+**To create a new dedicated dashboard:**
 
-1. **Edit your dashboard**
-   - Click the **⋮** menu (top right)
-   - Select **Edit Dashboard**
+1. **Go to Settings**
+   - Click **Settings** in the sidebar
+   - Click **Dashboards**
 
-2. **Add a new view**
-   - Click **+ Add View** tab at the top
-   - Click the **⚙️** settings icon on the new view tab
-   - Configure the view:
+2. **Create a new dashboard**
+   - Click **+ Add Dashboard** (bottom right)
+   - Configure:
      - **Title**: "Heat Pump Timeline" (or your preferred name)
      - **Icon**: `mdi:chart-timeline-variant` (or your choice)
+     - **URL**: `heat-pump` (or your preferred URL)
+     - **Admin only**: Leave unchecked (unless you want to restrict access)
+   - Click **Create**
+
+3. **Configure the dashboard as Panel view**
+   - You'll be automatically taken to the new dashboard
+   - It will be empty - click **Edit Dashboard** (⋮ menu, top right)
+   - Click the **⚙️** icon on the default view tab
+   - Configure:
      - **View type**: Select **Panel (1 card)**
    - Click **Save**
 
-3. **Add the card to the Panel view**
-   - You should now be on the new Panel view
-   - Click **+ Add Card** (it will fill the entire width)
+4. **Add the Heat Pump Timeline card**
+   - Click **+ Add Card** (it will fill the entire screen)
    - Search for "Heat Pump Timeline" or click **Manual** and enter:
 
    ```yaml
@@ -110,12 +117,34 @@ This card works best in a **Panel (1 card)** view where it can use the full scre
    power_out_entity: sensor.heat_pump_power_output
    ```
 
-4. **Configure your entities**
+5. **Configure your entities**
    - Replace `sensor.heat_pump_power_input` with your actual power input sensor
    - Replace `sensor.heat_pump_power_output` with your actual power output sensor
    - Add optional entities (see Configuration Examples below)
 
-5. **Save** the dashboard
+6. **Save** the dashboard
+
+Your new dashboard will now appear in the sidebar. You can access it anytime by clicking "Heat Pump Timeline" in the menu.
+
+#### Alternative: Add to Existing Dashboard
+
+If you prefer to add this card to an existing dashboard as a new view:
+
+1. **Edit your existing dashboard**
+   - Go to the dashboard you want to add to
+   - Click the **⋮** menu (top right)
+   - Select **Edit Dashboard**
+
+2. **Add a new Panel view**
+   - Click **+ Add View** tab at the top
+   - Click the **⚙️** settings icon on the new view tab
+   - Configure:
+     - **Title**: "Heat Pump" (or your preferred name)
+     - **Icon**: `mdi:chart-timeline-variant` (or your choice)
+     - **View type**: Select **Panel (1 card)**
+   - Click **Save**
+
+3. **Add the card** (follow steps 4-5 from the dedicated dashboard instructions above)
 
 #### Alternative: Standard Masonry View
 
