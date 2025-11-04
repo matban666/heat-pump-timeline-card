@@ -79,14 +79,29 @@ Or manually clear your browser cache in browser settings.
 
 ### Step 5: Add to Dashboard
 
+#### Recommended: Use Panel View (Full Width)
+
+This card works best in a **Panel (1 card)** view where it can use the full screen width. While it works in standard Masonry layouts, the chart can feel cramped.
+
+**To create a Panel view:**
+
 1. **Edit your dashboard**
    - Click the **⋮** menu (top right)
    - Select **Edit Dashboard**
 
-2. **Add the card**
-   - Click **+ Add Card** (bottom right)
-   - Search for "Heat Pump Timeline" in the card picker
-   - Or click **Manual** and enter:
+2. **Add a new view**
+   - Click **+ Add View** tab at the top
+   - Click the **⚙️** settings icon on the new view tab
+   - Configure the view:
+     - **Title**: "Heat Pump Timeline" (or your preferred name)
+     - **Icon**: `mdi:chart-timeline-variant` (or your choice)
+     - **View type**: Select **Panel (1 card)**
+   - Click **Save**
+
+3. **Add the card to the Panel view**
+   - You should now be on the new Panel view
+   - Click **+ Add Card** (it will fill the entire width)
+   - Search for "Heat Pump Timeline" or click **Manual** and enter:
 
    ```yaml
    type: custom:heat-pump-timeline-card
@@ -95,12 +110,36 @@ Or manually clear your browser cache in browser settings.
    power_out_entity: sensor.heat_pump_power_output
    ```
 
-3. **Configure your entities**
+4. **Configure your entities**
    - Replace `sensor.heat_pump_power_input` with your actual power input sensor
    - Replace `sensor.heat_pump_power_output` with your actual power output sensor
    - Add optional entities (see Configuration Examples below)
 
-4. **Save** the dashboard
+5. **Save** the dashboard
+
+#### Alternative: Standard Masonry View
+
+If you prefer to use a standard Masonry layout:
+
+1. **Edit your dashboard**
+   - Click the **⋮** menu (top right)
+   - Select **Edit Dashboard**
+
+2. **Add the card**
+   - Click **+ Add Card** (bottom right)
+   - Search for "Heat Pump Timeline" or click **Manual**
+   - Enter your configuration
+
+**Note:** In Masonry view, consider reducing the `width` parameter to fit better:
+
+```yaml
+type: custom:heat-pump-timeline-card
+title: Heat Pump Performance
+width: 600  # Smaller width for Masonry layout
+height: 400
+power_in_entity: sensor.heat_pump_power_input
+power_out_entity: sensor.heat_pump_power_output
+```
 
 ## Configuration Examples
 
