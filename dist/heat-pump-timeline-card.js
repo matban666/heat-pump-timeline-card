@@ -1232,7 +1232,7 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Build SVG content
     const svg = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
         <!-- Grid lines -->
         ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
 
@@ -1421,18 +1421,20 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // In panel mode, if we used estimated dimensions, trigger a second render with measured dimensions
     if (isPanel && !this._hasMeasuredHeight) {
-      requestAnimationFrame(() => {
+      // Use setTimeout to ensure flexbox layout is fully calculated
+      setTimeout(() => {
         const chartContainer = this.shadowRoot?.querySelector('.chart-container');
         if (chartContainer && chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
           const measuredWidth = chartContainer.clientWidth;
           const measuredHeight = chartContainer.clientHeight;
-          // Only re-render if the measured dimensions are significantly different
-          if (Math.abs(measuredHeight - height) > 50 || Math.abs(measuredWidth - width) > 50) {
+          // Only re-render if the measured dimensions are different (even slightly)
+          // This ensures we always render with exact container dimensions
+          if (Math.abs(measuredHeight - height) > 5 || Math.abs(measuredWidth - width) > 5) {
             this._hasMeasuredHeight = true;
             this.renderChart(data);
           }
         }
-      });
+      }, 50); // Small delay to ensure layout is complete
     } else if (!isPanel) {
       // Reset flag when not in panel mode
       this._hasMeasuredHeight = false;
