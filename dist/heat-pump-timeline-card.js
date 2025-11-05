@@ -1232,7 +1232,7 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Build SVG content
     const svg = `
-      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
         <!-- Grid lines -->
         ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
 
