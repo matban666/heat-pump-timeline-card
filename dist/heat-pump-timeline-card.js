@@ -1152,42 +1152,15 @@ class HeatPumpTimelineCard extends HTMLElement {
     return false;
   }
 
-  renderChart(data) {
-    // Detect if we're in a panel view by checking if this is likely the only card
-    const isPanel = this.detectPanelView();
+  renderStructure(data, isPanel) {
+    // Render the card structure (controls, legend, info panel) with an empty chart container
+    // This allows us to measure the container before rendering the actual SVG
 
-    // Calculate width and height: measure container in panel mode, otherwise use config values
-    let width, height;
-    if (isPanel) {
-      // In panel mode, measure the actual available space
-      const chartContainer = this.shadowRoot?.querySelector('.chart-container');
-      if (chartContainer && chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
-        // Use measured dimensions from container
-        width = chartContainer.clientWidth;
-        height = chartContainer.clientHeight;
-      } else {
-        // Initial render: use viewport-based estimates
-        width = window.innerWidth - 16; // Account for padding
-        const viewportHeight = window.innerHeight;
-        height = Math.max(viewportHeight - 200, 400);
-      }
-    } else {
-      // Masonry mode: use configured dimensions
-      width = this.config.width;
-      height = this.config.height;
-    }
-
-    const padding = { top: 40, right: 60, bottom: 60, left: 60 };
-
-    const chartWidth = width - padding.left - padding.right;
-    const chartHeight = height - padding.top - padding.bottom;
-
-    // Calculate COP for the window (combined)
+    // Calculate COP values for info panel
     const totalEnergyIn = this.calculateEnergy(data.power_in, data.startTime, data.endTime);
     const totalEnergyOut = this.calculateEnergy(data.power_out, data.startTime, data.endTime);
     const windowCOP = totalEnergyIn > 0 ? totalEnergyOut / totalEnergyIn : 0;
 
-    // Calculate mode-specific SCOP values
     let chSCOP = 0;
     let dhwSCOP = 0;
     if (data.mode && data.mode.length > 0) {
@@ -1199,60 +1172,6 @@ class HeatPumpTimelineCard extends HTMLElement {
       const dhwEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'DHW');
       dhwSCOP = dhwEnergyIn > 0 ? dhwEnergyOut / dhwEnergyIn : 0;
     }
-
-    // Time scale
-    const timeExtent = [data.startTime.getTime(), data.endTime.getTime()];
-    const scaleX = (time) => padding.left + ((time.getTime() - timeExtent[0]) / (timeExtent[1] - timeExtent[0])) * chartWidth;
-
-    // Temperature scale (for all temperature lines and flow rate)
-    const allTemps = [
-      ...data.flow_temp.map(d => d.value),
-      ...data.return_temp.map(d => d.value),
-      ...data.outside_temp.map(d => d.value),
-      ...data.inside_temp.map(d => d.value),
-      ...data.setpoint.map(d => d.value),
-      ...data.weather_curve_setpoint.map(d => d.value),
-      ...data.flow_setpoint.map(d => d.value),
-      ...data.flow_rate.map(d => d.value),
-    ];
-    const tempMin = Math.floor(Math.min(...allTemps, 0));
-    const tempMax = Math.ceil(Math.max(...allTemps, 45));
-    const scaleYTemp = (value) => height - padding.bottom - ((value - tempMin) / (tempMax - tempMin)) * chartHeight;
-
-    // Power scale (right axis)
-    const allPower = [
-      ...data.power_in.map(d => d.value),
-      ...data.power_out.map(d => d.value),
-    ];
-    const powerMax = Math.ceil(Math.max(...allPower, 7000));
-    const scaleYPower = (value) => height - padding.bottom - (value / powerMax) * chartHeight;
-
-    // Generate time axis labels
-    const timeLabels = this.generateTimeLabels(data.startTime, data.endTime, this.config.hours);
-
-    // Build SVG content
-    const svg = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
-        <!-- Grid lines -->
-        ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
-
-        <!-- Shaded areas -->
-        ${this.renderShadedAreas(data, scaleX, scaleYPower, height, padding)}
-
-        <!-- Temperature lines -->
-        ${this.renderLine(data.flow_temp, scaleX, scaleYTemp, '#e74c3c', 'Flow Temp')}
-        ${this.renderLine(data.return_temp, scaleX, scaleYTemp, '#2ecc71', 'Return Temp')}
-        ${this.renderLine(data.outside_temp, scaleX, scaleYTemp, '#9b59b6', 'Outside Temp')}
-        ${this.renderLine(data.inside_temp, scaleX, scaleYTemp, '#34495e', 'Room Temp')}
-        ${this.renderLine(data.setpoint, scaleX, scaleYTemp, '#95a5a6', 'Setpoint', '5,5')}
-        ${this.renderLine(data.weather_curve_setpoint, scaleX, scaleYTemp, '#16a085', 'Weather Curve Setpoint', '5,5')}
-        ${this.renderLine(data.flow_setpoint, scaleX, scaleYTemp, '#e67e22', 'Flow Setpoint', '5,5')}
-        ${this.renderLine(data.flow_rate, scaleX, scaleYTemp, '#1abc9c', 'Flow Rate')}
-
-        <!-- Axes -->
-        ${this.renderAxes(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
-      </svg>
-    `;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -1381,7 +1300,7 @@ class HeatPumpTimelineCard extends HTMLElement {
           <div class="chart-container">
             <div class="tooltip"></div>
             <div class="zoom-selection"></div>
-            ${svg}
+            <!-- SVG will be inserted here -->
           </div>
           <div class="legend">
             <div class="legend-item ${this._hiddenLines.has('Flow Temp') ? 'hidden' : ''}" data-label="Flow Temp"><div class="legend-color" style="background: #e74c3c;"></div><span>Flow Temp</span></div>
@@ -1415,30 +1334,131 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     this.setupControlListeners();
     this.setupLegendListeners();
+  }
+
+  renderChart(data) {
+    // Detect if we're in a panel view by checking if this is likely the only card
+    const isPanel = this.detectPanelView();
+
+    // Check if we have a container to measure
+    const chartContainer = this.shadowRoot?.querySelector('.chart-container');
+
+    // If container doesn't exist yet (first render), create structure and defer chart rendering
+    if (!chartContainer) {
+      this.renderStructure(data, isPanel);
+      // Schedule chart rendering after structure is created
+      requestAnimationFrame(() => this.renderChart(data));
+      return;
+    }
+
+    // Calculate width and height: measure container in panel mode, otherwise use config values
+    let width, height;
+    if (isPanel) {
+      // In panel mode, measure the actual available space
+      if (chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
+        // Use measured dimensions from container
+        width = chartContainer.clientWidth;
+        height = chartContainer.clientHeight;
+      } else {
+        // Container exists but has no dimensions yet - wait for layout
+        requestAnimationFrame(() => this.renderChart(data));
+        return;
+      }
+    } else {
+      // Masonry mode: use configured dimensions
+      width = this.config.width;
+      height = this.config.height;
+    }
+
+    const padding = { top: 40, right: 60, bottom: 60, left: 60 };
+
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+
+    // Calculate COP for the window (combined)
+    const totalEnergyIn = this.calculateEnergy(data.power_in, data.startTime, data.endTime);
+    const totalEnergyOut = this.calculateEnergy(data.power_out, data.startTime, data.endTime);
+    const windowCOP = totalEnergyIn > 0 ? totalEnergyOut / totalEnergyIn : 0;
+
+    // Calculate mode-specific SCOP values
+    let chSCOP = 0;
+    let dhwSCOP = 0;
+    if (data.mode && data.mode.length > 0) {
+      const chEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'CH');
+      const chEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'CH');
+      chSCOP = chEnergyIn > 0 ? chEnergyOut / chEnergyIn : 0;
+
+      const dhwEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'DHW');
+      const dhwEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'DHW');
+      dhwSCOP = dhwEnergyIn > 0 ? dhwEnergyOut / dhwEnergyIn : 0;
+    }
+
+    // Time scale
+    const timeExtent = [data.startTime.getTime(), data.endTime.getTime()];
+    const scaleX = (time) => padding.left + ((time.getTime() - timeExtent[0]) / (timeExtent[1] - timeExtent[0])) * chartWidth;
+
+    // Temperature scale (for all temperature lines and flow rate)
+    const allTemps = [
+      ...data.flow_temp.map(d => d.value),
+      ...data.return_temp.map(d => d.value),
+      ...data.outside_temp.map(d => d.value),
+      ...data.inside_temp.map(d => d.value),
+      ...data.setpoint.map(d => d.value),
+      ...data.weather_curve_setpoint.map(d => d.value),
+      ...data.flow_setpoint.map(d => d.value),
+      ...data.flow_rate.map(d => d.value),
+    ];
+    const tempMin = Math.floor(Math.min(...allTemps, 0));
+    const tempMax = Math.ceil(Math.max(...allTemps, 45));
+    const scaleYTemp = (value) => height - padding.bottom - ((value - tempMin) / (tempMax - tempMin)) * chartHeight;
+
+    // Power scale (right axis)
+    const allPower = [
+      ...data.power_in.map(d => d.value),
+      ...data.power_out.map(d => d.value),
+    ];
+    const powerMax = Math.ceil(Math.max(...allPower, 7000));
+    const scaleYPower = (value) => height - padding.bottom - (value / powerMax) * chartHeight;
+
+    // Generate time axis labels
+    const timeLabels = this.generateTimeLabels(data.startTime, data.endTime, this.config.hours);
+
+    // Build SVG content
+    const svg = `
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+        <!-- Grid lines -->
+        ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
+
+        <!-- Shaded areas -->
+        ${this.renderShadedAreas(data, scaleX, scaleYPower, height, padding)}
+
+        <!-- Temperature lines -->
+        ${this.renderLine(data.flow_temp, scaleX, scaleYTemp, '#e74c3c', 'Flow Temp')}
+        ${this.renderLine(data.return_temp, scaleX, scaleYTemp, '#2ecc71', 'Return Temp')}
+        ${this.renderLine(data.outside_temp, scaleX, scaleYTemp, '#9b59b6', 'Outside Temp')}
+        ${this.renderLine(data.inside_temp, scaleX, scaleYTemp, '#34495e', 'Room Temp')}
+        ${this.renderLine(data.setpoint, scaleX, scaleYTemp, '#95a5a6', 'Setpoint', '5,5')}
+        ${this.renderLine(data.weather_curve_setpoint, scaleX, scaleYTemp, '#16a085', 'Weather Curve Setpoint', '5,5')}
+        ${this.renderLine(data.flow_setpoint, scaleX, scaleYTemp, '#e67e22', 'Flow Setpoint', '5,5')}
+        ${this.renderLine(data.flow_rate, scaleX, scaleYTemp, '#1abc9c', 'Flow Rate')}
+
+        <!-- Axes -->
+        ${this.renderAxes(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
+      </svg>
+    `;
+
+    // Insert SVG into the existing chart container
+    // Remove old SVG if present
+    const oldSvg = chartContainer.querySelector('svg');
+    if (oldSvg) {
+      oldSvg.remove();
+    }
+    chartContainer.insertAdjacentHTML('beforeend', svg);
+
+    // Set up event listeners for the chart
     this.setupLineTooltips(data, scaleX, scaleYTemp, timeExtent);
     this.setupDHWTooltips();
     this.setupZoomSelection(data, scaleX, padding, width);
-
-    // In panel mode, if we used estimated dimensions, trigger a second render with measured dimensions
-    if (isPanel && !this._hasMeasuredHeight) {
-      // Use setTimeout to ensure flexbox layout is fully calculated
-      setTimeout(() => {
-        const chartContainer = this.shadowRoot?.querySelector('.chart-container');
-        if (chartContainer && chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
-          const measuredWidth = chartContainer.clientWidth;
-          const measuredHeight = chartContainer.clientHeight;
-          // Only re-render if the measured dimensions are different (even slightly)
-          // This ensures we always render with exact container dimensions
-          if (Math.abs(measuredHeight - height) > 5 || Math.abs(measuredWidth - width) > 5) {
-            this._hasMeasuredHeight = true;
-            this.renderChart(data);
-          }
-        }
-      }, 50); // Small delay to ensure layout is complete
-    } else if (!isPanel) {
-      // Reset flag when not in panel mode
-      this._hasMeasuredHeight = false;
-    }
   }
 
   renderGrid(scaleX, scaleY, timeLabels, tempMin, tempMax, padding, width, height) {
