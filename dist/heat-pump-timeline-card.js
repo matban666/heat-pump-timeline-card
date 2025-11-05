@@ -1153,28 +1153,27 @@ class HeatPumpTimelineCard extends HTMLElement {
   }
 
   renderChart(data) {
-    const width = this.config.width;
-
     // Detect if we're in a panel view by checking if this is likely the only card
-    // In panel view, we want to fill the viewport height
     const isPanel = this.detectPanelView();
 
-    // Calculate height: use viewport height in panel mode, otherwise use config height
-    let height;
+    // Calculate width and height: measure container in panel mode, otherwise use config values
+    let width, height;
     if (isPanel) {
-      // In panel mode, try to measure the actual available height
-      // First render pass may not have accurate measurements, so we estimate generously
+      // In panel mode, measure the actual available space
       const chartContainer = this.shadowRoot?.querySelector('.chart-container');
-      if (chartContainer && chartContainer.clientHeight > 0) {
-        // Use measured height from container
+      if (chartContainer && chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
+        // Use measured dimensions from container
+        width = chartContainer.clientWidth;
         height = chartContainer.clientHeight;
       } else {
-        // Initial render: use a generous estimate
+        // Initial render: use viewport-based estimates
+        width = window.innerWidth - 16; // Account for padding
         const viewportHeight = window.innerHeight;
-        // More generous calculation: viewport minus header and controls (roughly 200px total)
         height = Math.max(viewportHeight - 200, 400);
       }
     } else {
+      // Masonry mode: use configured dimensions
+      width = this.config.width;
       height = this.config.height;
     }
 
@@ -1233,7 +1232,7 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Build SVG content
     const svg = `
-      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
         <!-- Grid lines -->
         ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
 
@@ -1420,14 +1419,15 @@ class HeatPumpTimelineCard extends HTMLElement {
     this.setupDHWTooltips();
     this.setupZoomSelection(data, scaleX, padding, width);
 
-    // In panel mode, if we used an estimated height, trigger a second render with measured height
+    // In panel mode, if we used estimated dimensions, trigger a second render with measured dimensions
     if (isPanel && !this._hasMeasuredHeight) {
       requestAnimationFrame(() => {
         const chartContainer = this.shadowRoot?.querySelector('.chart-container');
-        if (chartContainer && chartContainer.clientHeight > 0) {
+        if (chartContainer && chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
+          const measuredWidth = chartContainer.clientWidth;
           const measuredHeight = chartContainer.clientHeight;
-          // Only re-render if the measured height is significantly different
-          if (Math.abs(measuredHeight - height) > 50) {
+          // Only re-render if the measured dimensions are significantly different
+          if (Math.abs(measuredHeight - height) > 50 || Math.abs(measuredWidth - width) > 50) {
             this._hasMeasuredHeight = true;
             this.renderChart(data);
           }
