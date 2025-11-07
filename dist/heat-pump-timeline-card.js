@@ -603,6 +603,24 @@ class HeatPumpTimelineCard extends HTMLElement {
     });
   }
 
+  // Helper function to find the value at a given time in step-wise data
+  findStepwiseValueAtTime(dataPoints, mouseTime) {
+    if (!dataPoints || dataPoints.length === 0) return null;
+
+    // Find the last data point that is at or before the mouse time
+    // This represents the value being displayed at this x-position in the step graph
+    let activePoint = null;
+    for (let i = 0; i < dataPoints.length; i++) {
+      if (dataPoints[i].time.getTime() <= mouseTime) {
+        activePoint = dataPoints[i];
+      } else {
+        break; // We've passed the mouse time
+      }
+    }
+
+    return activePoint || dataPoints[0]; // Fall back to first point if mouse is before all data
+  }
+
   setupLineTooltips(data, scaleX, scaleY, timeExtent) {
     const tooltip = this.shadowRoot.querySelector('.tooltip');
     const svg = this.shadowRoot.querySelector('svg');
@@ -659,17 +677,11 @@ class HeatPumpTimelineCard extends HTMLElement {
         const timeRatio = (mouseX - padding.left) / chartWidth;
         const mouseTime = timeExtent[0] + (timeRatio * (timeExtent[1] - timeExtent[0]));
 
-        // Find nearest data point
-        let nearestPoint = dataPoints[0];
-        let minDistance = Math.abs(dataPoints[0].time.getTime() - mouseTime);
+        // Use step-wise logic to find the active value at the mouse position
+        // This matches the visual representation where values are extended horizontally
+        const nearestPoint = this.findStepwiseValueAtTime(dataPoints, mouseTime);
 
-        for (let i = 1; i < dataPoints.length; i++) {
-          const distance = Math.abs(dataPoints[i].time.getTime() - mouseTime);
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestPoint = dataPoints[i];
-          }
-        }
+        if (!nearestPoint) return;
 
         // Format time
         const timeStr = nearestPoint.time.toLocaleTimeString('en-GB', {
@@ -684,46 +696,11 @@ class HeatPumpTimelineCard extends HTMLElement {
           const returnData = dataMap['Return Temp'];
           const flowSetpointData = dataMap['Flow Setpoint'];
 
-          // Find nearest points for flow, return, and flow setpoint at this time
-          let flowPoint = null;
-          let returnPoint = null;
-          let flowSetpointPoint = null;
-
-          if (flowData && flowData.length > 0) {
-            flowPoint = flowData[0];
-            let minFlowDist = Math.abs(flowData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < flowData.length; i++) {
-              const distance = Math.abs(flowData[i].time.getTime() - mouseTime);
-              if (distance < minFlowDist) {
-                minFlowDist = distance;
-                flowPoint = flowData[i];
-              }
-            }
-          }
-
-          if (returnData && returnData.length > 0) {
-            returnPoint = returnData[0];
-            let minReturnDist = Math.abs(returnData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < returnData.length; i++) {
-              const distance = Math.abs(returnData[i].time.getTime() - mouseTime);
-              if (distance < minReturnDist) {
-                minReturnDist = distance;
-                returnPoint = returnData[i];
-              }
-            }
-          }
-
-          if (flowSetpointData && flowSetpointData.length > 0) {
-            flowSetpointPoint = flowSetpointData[0];
-            let minFlowSetpointDist = Math.abs(flowSetpointData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < flowSetpointData.length; i++) {
-              const distance = Math.abs(flowSetpointData[i].time.getTime() - mouseTime);
-              if (distance < minFlowSetpointDist) {
-                minFlowSetpointDist = distance;
-                flowSetpointPoint = flowSetpointData[i];
-              }
-            }
-          }
+          // Use step-wise logic to find the active values at the mouse position
+          // This matches the visual representation where values are extended horizontally
+          const flowPoint = this.findStepwiseValueAtTime(flowData, mouseTime);
+          const returnPoint = this.findStepwiseValueAtTime(returnData, mouseTime);
+          const flowSetpointPoint = this.findStepwiseValueAtTime(flowSetpointData, mouseTime);
 
           // Calculate Delta-T and Overshoot if we have the values
           let tooltipContent = '';
@@ -763,33 +740,10 @@ class HeatPumpTimelineCard extends HTMLElement {
           const weatherCurveData = dataMap['Weather Curve Setpoint'];
           const flowSetpointData = dataMap['Flow Setpoint'];
 
-          // Find nearest points for both setpoints at this time
-          let weatherCurvePoint = null;
-          let flowSetpointPoint = null;
-
-          if (weatherCurveData && weatherCurveData.length > 0) {
-            weatherCurvePoint = weatherCurveData[0];
-            let minWeatherCurveDist = Math.abs(weatherCurveData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < weatherCurveData.length; i++) {
-              const distance = Math.abs(weatherCurveData[i].time.getTime() - mouseTime);
-              if (distance < minWeatherCurveDist) {
-                minWeatherCurveDist = distance;
-                weatherCurvePoint = weatherCurveData[i];
-              }
-            }
-          }
-
-          if (flowSetpointData && flowSetpointData.length > 0) {
-            flowSetpointPoint = flowSetpointData[0];
-            let minFlowSetpointDist = Math.abs(flowSetpointData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < flowSetpointData.length; i++) {
-              const distance = Math.abs(flowSetpointData[i].time.getTime() - mouseTime);
-              if (distance < minFlowSetpointDist) {
-                minFlowSetpointDist = distance;
-                flowSetpointPoint = flowSetpointData[i];
-              }
-            }
-          }
+          // Use step-wise logic to find the active values at the mouse position
+          // This matches the visual representation where values are extended horizontally
+          const weatherCurvePoint = this.findStepwiseValueAtTime(weatherCurveData, mouseTime);
+          const flowSetpointPoint = this.findStepwiseValueAtTime(flowSetpointData, mouseTime);
 
           // Calculate Modulation if we have both values
           let tooltipContent = '';
@@ -819,33 +773,10 @@ class HeatPumpTimelineCard extends HTMLElement {
           const setpointData = dataMap['Setpoint'];
           const roomTempData = dataMap['Room Temp'];
 
-          // Find nearest points for both setpoint and room temp at this time
-          let setpointPoint = null;
-          let roomTempPoint = null;
-
-          if (setpointData && setpointData.length > 0) {
-            setpointPoint = setpointData[0];
-            let minSetpointDist = Math.abs(setpointData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < setpointData.length; i++) {
-              const distance = Math.abs(setpointData[i].time.getTime() - mouseTime);
-              if (distance < minSetpointDist) {
-                minSetpointDist = distance;
-                setpointPoint = setpointData[i];
-              }
-            }
-          }
-
-          if (roomTempData && roomTempData.length > 0) {
-            roomTempPoint = roomTempData[0];
-            let minRoomTempDist = Math.abs(roomTempData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < roomTempData.length; i++) {
-              const distance = Math.abs(roomTempData[i].time.getTime() - mouseTime);
-              if (distance < minRoomTempDist) {
-                minRoomTempDist = distance;
-                roomTempPoint = roomTempData[i];
-              }
-            }
-          }
+          // Use step-wise logic to find the active values at the mouse position
+          // This matches the visual representation where values are extended horizontally
+          const setpointPoint = this.findStepwiseValueAtTime(setpointData, mouseTime);
+          const roomTempPoint = this.findStepwiseValueAtTime(roomTempData, mouseTime);
 
           // Calculate Overshoot if we have both values
           let tooltipContent = '';
@@ -925,17 +856,11 @@ class HeatPumpTimelineCard extends HTMLElement {
         const timeRatio = (mouseX - padding.left) / chartWidth;
         const mouseTime = timeExtent[0] + (timeRatio * (timeExtent[1] - timeExtent[0]));
 
-        // Find nearest data point
-        let nearestPoint = dataPoints[0];
-        let minDistance = Math.abs(dataPoints[0].time.getTime() - mouseTime);
+        // Use step-wise logic to find the active value at the mouse position
+        // This matches the visual representation where values are extended horizontally
+        const nearestPoint = this.findStepwiseValueAtTime(dataPoints, mouseTime);
 
-        for (let i = 1; i < dataPoints.length; i++) {
-          const distance = Math.abs(dataPoints[i].time.getTime() - mouseTime);
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestPoint = dataPoints[i];
-          }
-        }
+        if (!nearestPoint) return;
 
         // Format time
         const timeStr = nearestPoint.time.toLocaleTimeString('en-GB', {
@@ -949,33 +874,10 @@ class HeatPumpTimelineCard extends HTMLElement {
           const powerInData = dataMap['Electricity In'];
           const powerOutData = dataMap['Heat Output'];
 
-          // Find nearest points for both power in and power out at this time
-          let powerInPoint = null;
-          let powerOutPoint = null;
-
-          if (powerInData && powerInData.length > 0) {
-            powerInPoint = powerInData[0];
-            let minPowerInDist = Math.abs(powerInData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < powerInData.length; i++) {
-              const distance = Math.abs(powerInData[i].time.getTime() - mouseTime);
-              if (distance < minPowerInDist) {
-                minPowerInDist = distance;
-                powerInPoint = powerInData[i];
-              }
-            }
-          }
-
-          if (powerOutData && powerOutData.length > 0) {
-            powerOutPoint = powerOutData[0];
-            let minPowerOutDist = Math.abs(powerOutData[0].time.getTime() - mouseTime);
-            for (let i = 1; i < powerOutData.length; i++) {
-              const distance = Math.abs(powerOutData[i].time.getTime() - mouseTime);
-              if (distance < minPowerOutDist) {
-                minPowerOutDist = distance;
-                powerOutPoint = powerOutData[i];
-              }
-            }
-          }
+          // Use step-wise logic to find the active value at the mouse position
+          // This matches the visual representation where values are extended horizontally
+          const powerInPoint = this.findStepwiseValueAtTime(powerInData, mouseTime);
+          const powerOutPoint = this.findStepwiseValueAtTime(powerOutData, mouseTime);
 
           // Helper function to format power values
           const formatPower = (value) => {
