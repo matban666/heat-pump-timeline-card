@@ -17,6 +17,7 @@ A custom Lovelace card for Home Assistant that displays heat pump performance me
   - Weather Curve and Flow Setpoint with Modulation
   - Room Temp and Setpoint with Overshoot
 - **Step Interpolation** for accurate representation of periodic data
+- **Configurable Time Offsets** to compensate for sensor recording delays
 - **Hover Effects** with line embiggen for better visibility
 - **Flexible Time Ranges** (1 hour, 6 hours, 1 day, 1 week, or custom zoom/pan)
 - **Timeline Navigation** with pan (<<, <, >, >>) and zoom (+, -) buttons
@@ -90,7 +91,106 @@ mode_entity: sensor.heat_pump_mode
 
 # Optional immersion heater entity
 immersion_entity: sensor.immersion_heater_power
+
+# Optional DHW entities
+dhw_temp_entity: sensor.dhw_tank_temperature
+dhw_setpoint_entity: sensor.dhw_setpoint
+
+# Optional time offsets (in seconds) - see Time Offset Configuration section
+power_in_offset: 0
+power_out_offset: 0
+flow_temp_offset: 0
+return_temp_offset: 0
+outside_temp_offset: 0
+inside_temp_offset: 0
+setpoint_offset: 0
+weather_curve_setpoint_offset: 0
+flow_setpoint_offset: 0
+flow_rate_offset: 0
+mode_offset: 0
+immersion_offset: 0
+dhw_temp_offset: 0
+dhw_setpoint_offset: 0
 ```
+
+## Time Offset Configuration
+
+### Overview
+
+Time offset options allow you to shift any metric's timestamps to compensate for recording delays or synchronization issues between different sensors. This is particularly useful when sensors have different polling rates or processing delays.
+
+### When to Use Time Offsets
+
+Common scenarios where time offsets are helpful:
+
+1. **Power Sensor Lag**: Power input sensors may lag behind power output sensors due to metering delays
+2. **Temperature Sensor Delays**: Different temperature sensors may have different response times
+3. **Remote Sensor Communication**: Network delays in wireless sensors can cause timing discrepancies
+4. **Data Processing Lag**: Calculated values (like COP) may be recorded after the raw measurements
+
+### Configuration Format
+
+All offset values are in **seconds** and can be:
+- **Positive** (e.g., `30`): Shifts data forward in time by that many seconds
+- **Negative** (e.g., `-15`): Shifts data backward in time by that many seconds
+- **Zero** or **omitted** (default): No time shift applied
+
+### Available Offset Options
+
+```yaml
+type: custom:heat-pump-timeline-card
+# ... entity configuration ...
+
+# Power metrics
+power_in_offset: 30        # Shift power input 30 seconds forward
+power_out_offset: 0        # No shift for power output
+
+# Temperature metrics
+flow_temp_offset: 0        # Flow temperature
+return_temp_offset: 0      # Return temperature
+outside_temp_offset: 0     # Outside/ambient temperature
+inside_temp_offset: 0      # Room temperature
+
+# Setpoint metrics
+setpoint_offset: 0         # Heating setpoint
+weather_curve_setpoint_offset: 0  # Weather curve setpoint
+flow_setpoint_offset: 0    # Flow temperature setpoint
+
+# Other metrics
+flow_rate_offset: 0        # Water flow rate
+mode_offset: 0             # Operating mode
+immersion_offset: 0        # Immersion heater power
+dhw_temp_offset: 0         # DHW tank temperature
+dhw_setpoint_offset: 0     # DHW setpoint
+```
+
+### Example: Compensating for Power Sensor Lag
+
+If you notice that your power input readings lag 25 seconds behind your power output readings:
+
+```yaml
+type: custom:heat-pump-timeline-card
+power_in_entity: sensor.heat_pump_power_input
+power_out_entity: sensor.heat_pump_power_output
+power_in_offset: 25        # Shift power_in forward by 25 seconds
+power_out_offset: 0        # Keep power_out at its recorded time
+# ... other configuration ...
+```
+
+### How to Determine the Right Offset
+
+1. **Visual Inspection**: Look at the chart for obvious timing misalignments
+2. **Tooltip Comparison**: Hover over different metrics and compare timestamps
+3. **Known Sensor Delays**: Check your sensor documentation for polling/update rates
+4. **Iterative Adjustment**: Start with small offsets (5-10 seconds) and refine
+
+### Important Notes
+
+- Offsets only affect the visualization and calculations within the card
+- Original sensor data in Home Assistant is not modified
+- Offsets are applied after data is retrieved from the history API
+- All calculations (COP, SCOP, Delta-T, etc.) use the offset-adjusted timestamps
+- Offsets work with the step-wise interpolation to maintain accurate visual representation
 
 ## Entity Requirements
 

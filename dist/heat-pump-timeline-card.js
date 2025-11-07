@@ -51,7 +51,21 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: config.title || 'Heat Pump Timeline',
       width: config.width || 1000,
       height: config.height || 400,
-      power_in_offset: config.power_in_offset || 0, // Time offset in seconds for power_in data
+      // Time offsets in seconds for all metrics (positive = shift forward, negative = shift backward)
+      power_in_offset: config.power_in_offset || 0,
+      power_out_offset: config.power_out_offset || 0,
+      flow_temp_offset: config.flow_temp_offset || 0,
+      return_temp_offset: config.return_temp_offset || 0,
+      outside_temp_offset: config.outside_temp_offset || 0,
+      inside_temp_offset: config.inside_temp_offset || 0,
+      setpoint_offset: config.setpoint_offset || 0,
+      weather_curve_setpoint_offset: config.weather_curve_setpoint_offset || 0,
+      flow_setpoint_offset: config.flow_setpoint_offset || 0,
+      flow_rate_offset: config.flow_rate_offset || 0,
+      mode_offset: config.mode_offset || 0,
+      immersion_offset: config.immersion_offset || 0,
+      dhw_temp_offset: config.dhw_temp_offset || 0,
+      dhw_setpoint_offset: config.dhw_setpoint_offset || 0,
       // Required entities
       power_in_entity: config.power_in_entity,
       power_out_entity: config.power_out_entity,
@@ -150,24 +164,35 @@ class HeatPumpTimelineCard extends HTMLElement {
 
       // Parse history into data structure with unit conversion
       let power_in = this.parseHistory(historyResults[0], this._powerInFactor);
-      const power_out = this.parseHistory(historyResults[1], this._powerOutFactor);
+      let power_out = this.parseHistory(historyResults[1], this._powerOutFactor);
+      let flow_temp = this.config.flow_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_temp_entity)]) : [];
+      let return_temp = this.config.return_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.return_temp_entity)]) : [];
+      let outside_temp = this.config.outside_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.outside_temp_entity)]) : [];
+      let inside_temp = this.config.inside_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.inside_temp_entity)]) : [];
+      let setpoint = this.config.setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.setpoint_entity)]) : [];
+      let weather_curve_setpoint = this.config.weather_curve_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.weather_curve_setpoint_entity)]) : [];
+      let flow_setpoint = this.config.flow_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_setpoint_entity)]) : [];
+      let flow_rate = this.config.flow_rate_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_rate_entity)]) : [];
+      let mode = this.config.mode_entity ? this.parseModeHistory(historyResults[entitiesToFetch.indexOf(this.config.mode_entity)]) : [];
+      let immersion = this.config.immersion_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.immersion_entity)], this._immersionFactor) : [];
+      let dhw_temp = this.config.dhw_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_temp_entity)]) : [];
+      let dhw_setpoint = this.config.dhw_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_setpoint_entity)]) : [];
 
-      // Apply time offset to power_in data if configured
-      if (this.config.power_in_offset !== 0) {
-        power_in = this.applyTimeOffset(power_in, this.config.power_in_offset);
-      }
-      const flow_temp = this.config.flow_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_temp_entity)]) : [];
-      const return_temp = this.config.return_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.return_temp_entity)]) : [];
-      const outside_temp = this.config.outside_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.outside_temp_entity)]) : [];
-      const inside_temp = this.config.inside_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.inside_temp_entity)]) : [];
-      const setpoint = this.config.setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.setpoint_entity)]) : [];
-      const weather_curve_setpoint = this.config.weather_curve_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.weather_curve_setpoint_entity)]) : [];
-      const flow_setpoint = this.config.flow_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_setpoint_entity)]) : [];
-      const flow_rate = this.config.flow_rate_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_rate_entity)]) : [];
-      const mode = this.config.mode_entity ? this.parseModeHistory(historyResults[entitiesToFetch.indexOf(this.config.mode_entity)]) : [];
-      const immersion = this.config.immersion_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.immersion_entity)], this._immersionFactor) : [];
-      const dhw_temp = this.config.dhw_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_temp_entity)]) : [];
-      const dhw_setpoint = this.config.dhw_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_setpoint_entity)]) : [];
+      // Apply time offsets to all metrics if configured
+      power_in = this.applyTimeOffset(power_in, this.config.power_in_offset);
+      power_out = this.applyTimeOffset(power_out, this.config.power_out_offset);
+      flow_temp = this.applyTimeOffset(flow_temp, this.config.flow_temp_offset);
+      return_temp = this.applyTimeOffset(return_temp, this.config.return_temp_offset);
+      outside_temp = this.applyTimeOffset(outside_temp, this.config.outside_temp_offset);
+      inside_temp = this.applyTimeOffset(inside_temp, this.config.inside_temp_offset);
+      setpoint = this.applyTimeOffset(setpoint, this.config.setpoint_offset);
+      weather_curve_setpoint = this.applyTimeOffset(weather_curve_setpoint, this.config.weather_curve_setpoint_offset);
+      flow_setpoint = this.applyTimeOffset(flow_setpoint, this.config.flow_setpoint_offset);
+      flow_rate = this.applyTimeOffset(flow_rate, this.config.flow_rate_offset);
+      mode = this.applyTimeOffset(mode, this.config.mode_offset);
+      immersion = this.applyTimeOffset(immersion, this.config.immersion_offset);
+      dhw_temp = this.applyTimeOffset(dhw_temp, this.config.dhw_temp_offset);
+      dhw_setpoint = this.applyTimeOffset(dhw_setpoint, this.config.dhw_setpoint_offset);
 
       // Extend temperature lines to the end of the time window with last known values
       this._data = {
@@ -1753,7 +1778,21 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: 'Heat Pump Timeline',
       width: 1000,
       height: 400,
+      // Time offsets in seconds (positive = shift forward, negative = shift backward)
       power_in_offset: 0,
+      power_out_offset: 0,
+      flow_temp_offset: 0,
+      return_temp_offset: 0,
+      outside_temp_offset: 0,
+      inside_temp_offset: 0,
+      setpoint_offset: 0,
+      weather_curve_setpoint_offset: 0,
+      flow_setpoint_offset: 0,
+      flow_rate_offset: 0,
+      mode_offset: 0,
+      immersion_offset: 0,
+      dhw_temp_offset: 0,
+      dhw_setpoint_offset: 0,
     };
   }
 }
