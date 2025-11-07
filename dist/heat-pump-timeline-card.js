@@ -683,8 +683,8 @@ class HeatPumpTimelineCard extends HTMLElement {
 
         if (!nearestPoint) return;
 
-        // Format time
-        const timeStr = nearestPoint.time.toLocaleTimeString('en-GB', {
+        // Format time - use the mouse position time since step-wise values extend to that point
+        const timeStr = new Date(mouseTime).toLocaleTimeString('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit'
@@ -862,8 +862,8 @@ class HeatPumpTimelineCard extends HTMLElement {
 
         if (!nearestPoint) return;
 
-        // Format time
-        const timeStr = nearestPoint.time.toLocaleTimeString('en-GB', {
+        // Format time - use the mouse position time since step-wise values extend to that point
+        const timeStr = new Date(mouseTime).toLocaleTimeString('en-GB', {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit'
