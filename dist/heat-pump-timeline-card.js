@@ -65,6 +65,8 @@ class HeatPumpTimelineCard extends HTMLElement {
       flow_rate_entity: config.flow_rate_entity,
       mode_entity: config.mode_entity,
       immersion_entity: config.immersion_entity,
+      dhw_temp_entity: config.dhw_temp_entity,
+      dhw_setpoint_entity: config.dhw_setpoint_entity,
     };
 
     // Fetch data if hass is already available (e.g., during edit)
@@ -118,6 +120,8 @@ class HeatPumpTimelineCard extends HTMLElement {
         this.config.flow_rate_entity,
         this.config.mode_entity,
         this.config.immersion_entity,
+        this.config.dhw_temp_entity,
+        this.config.dhw_setpoint_entity,
       ].filter(e => e);
 
       // Get current states to check units
@@ -156,6 +160,8 @@ class HeatPumpTimelineCard extends HTMLElement {
       const flow_rate = this.config.flow_rate_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_rate_entity)]) : [];
       const mode = this.config.mode_entity ? this.parseModeHistory(historyResults[entitiesToFetch.indexOf(this.config.mode_entity)]) : [];
       const immersion = this.config.immersion_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.immersion_entity)], this._immersionFactor) : [];
+      const dhw_temp = this.config.dhw_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_temp_entity)]) : [];
+      const dhw_setpoint = this.config.dhw_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_setpoint_entity)]) : [];
 
       // Extend temperature lines to the end of the time window with last known values
       this._data = {
@@ -169,6 +175,8 @@ class HeatPumpTimelineCard extends HTMLElement {
         weather_curve_setpoint: this.extendToEndTime(weather_curve_setpoint, endTime),
         flow_setpoint: this.extendToEndTime(flow_setpoint, endTime),
         flow_rate: this.extendToEndTime(flow_rate, endTime),
+        dhw_temp: this.extendToEndTime(dhw_temp, endTime),
+        dhw_setpoint: this.extendToEndTime(dhw_setpoint, endTime),
         mode,
         immersion,
         startTime,
@@ -611,8 +619,11 @@ class HeatPumpTimelineCard extends HTMLElement {
       'Weather Curve Setpoint': data.weather_curve_setpoint,
       'Flow Setpoint': data.flow_setpoint,
       'Flow Rate': data.flow_rate,
+      'DHW Temp': data.dhw_temp,
+      'DHW Setpoint': data.dhw_setpoint,
       'Heat Output': data.power_out,
       'Electricity In': data.power_in,
+      'Immersion': data.immersion,
     };
 
     // Handle temperature lines
@@ -1311,8 +1322,11 @@ class HeatPumpTimelineCard extends HTMLElement {
             <div class="legend-item ${this._hiddenLines.has('Weather Curve Setpoint') ? 'hidden' : ''}" data-label="Weather Curve Setpoint"><div class="legend-color" style="background: #16a085;"></div><span>Weather Curve</span></div>
             <div class="legend-item ${this._hiddenLines.has('Flow Setpoint') ? 'hidden' : ''}" data-label="Flow Setpoint"><div class="legend-color" style="background: #e67e22;"></div><span>Flow Setpoint</span></div>
             <div class="legend-item ${this._hiddenLines.has('Flow Rate') ? 'hidden' : ''}" data-label="Flow Rate"><div class="legend-color" style="background: #1abc9c;"></div><span>Flow Rate</span></div>
+            <div class="legend-item ${this._hiddenLines.has('DHW Temp') ? 'hidden' : ''}" data-label="DHW Temp"><div class="legend-color" style="background: #c0392b;"></div><span>DHW Temp</span></div>
+            <div class="legend-item ${this._hiddenLines.has('DHW Setpoint') ? 'hidden' : ''}" data-label="DHW Setpoint"><div class="legend-color" style="background: #e8b4b8;"></div><span>DHW Setpoint</span></div>
             <div class="legend-item ${this._hiddenLines.has('Heat Output') ? 'hidden' : ''}" data-label="Heat Output"><div class="legend-color" style="background: rgba(241, 196, 15, 0.3);"></div><span>Heat Output</span></div>
             <div class="legend-item ${this._hiddenLines.has('Electricity In') ? 'hidden' : ''}" data-label="Electricity In"><div class="legend-color" style="background: rgba(52, 152, 219, 0.3);"></div><span>Electricity In</span></div>
+            <div class="legend-item ${this._hiddenLines.has('Immersion') ? 'hidden' : ''}" data-label="Immersion"><div class="legend-color" style="background: rgba(155, 89, 182, 0.3);"></div><span>Immersion</span></div>
           </div>
           <div class="info-panel">
             <div class="info-item">
@@ -1407,6 +1421,8 @@ class HeatPumpTimelineCard extends HTMLElement {
       ...data.weather_curve_setpoint.map(d => d.value),
       ...data.flow_setpoint.map(d => d.value),
       ...data.flow_rate.map(d => d.value),
+      ...data.dhw_temp.map(d => d.value),
+      ...data.dhw_setpoint.map(d => d.value),
     ];
     const tempMin = Math.floor(Math.min(...allTemps, 0));
     const tempMax = Math.ceil(Math.max(...allTemps, 45));
@@ -1416,6 +1432,7 @@ class HeatPumpTimelineCard extends HTMLElement {
     const allPower = [
       ...data.power_in.map(d => d.value),
       ...data.power_out.map(d => d.value),
+      ...data.immersion.map(d => d.value),
     ];
     const powerMax = Math.ceil(Math.max(...allPower, 7000));
     const scaleYPower = (value) => height - padding.bottom - (value / powerMax) * chartHeight;
@@ -1441,6 +1458,8 @@ class HeatPumpTimelineCard extends HTMLElement {
         ${this.renderLine(data.weather_curve_setpoint, scaleX, scaleYTemp, '#16a085', 'Weather Curve Setpoint', '5,5')}
         ${this.renderLine(data.flow_setpoint, scaleX, scaleYTemp, '#e67e22', 'Flow Setpoint', '5,5')}
         ${this.renderLine(data.flow_rate, scaleX, scaleYTemp, '#1abc9c', 'Flow Rate')}
+        ${this.renderLine(data.dhw_temp, scaleX, scaleYTemp, '#c0392b', 'DHW Temp')}
+        ${this.renderLine(data.dhw_setpoint, scaleX, scaleYTemp, '#e8b4b8', 'DHW Setpoint', '5,5')}
 
         <!-- Axes -->
         ${this.renderAxes(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
@@ -1497,6 +1516,11 @@ class HeatPumpTimelineCard extends HTMLElement {
     // Electricity In consumption (light blue)
     if (data.power_in.length > 0) {
       areas += this.renderArea(data.power_in, scaleX, scaleYPower, height, padding, 'rgba(52, 152, 219, 0.3)', 'Electricity In');
+    }
+
+    // Immersion heater (purple)
+    if (data.immersion.length > 0) {
+      areas += this.renderArea(data.immersion, scaleX, scaleYPower, height, padding, 'rgba(155, 89, 182, 0.3)', 'Immersion');
     }
 
     return areas;
@@ -1575,10 +1599,18 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     let pathData = `M ${scaleX(dataPoints[0].time)} ${height - padding.bottom} `;
 
-    dataPoints.forEach(point => {
-      pathData += `L ${scaleX(point.time)} ${scaleY(point.value)} `;
-    });
+    // Start from the bottom, go up to the first point
+    pathData += `L ${scaleX(dataPoints[0].time)} ${scaleY(dataPoints[0].value)} `;
 
+    // Use step interpolation to avoid diagonal lines when values change periodically
+    for (let i = 1; i < dataPoints.length; i++) {
+      // First go horizontally to the new time, keeping the old value
+      pathData += `L ${scaleX(dataPoints[i].time)} ${scaleY(dataPoints[i - 1].value)} `;
+      // Then go vertically to the new value at the new time
+      pathData += `L ${scaleX(dataPoints[i].time)} ${scaleY(dataPoints[i].value)} `;
+    }
+
+    // Go back down to the bottom at the last point
     pathData += `L ${scaleX(dataPoints[dataPoints.length - 1].time)} ${height - padding.bottom} Z`;
 
     // Create a hover-able area on top
@@ -1795,6 +1827,8 @@ class HeatPumpTimelineCard extends HTMLElement {
       flow_rate_entity: '',
       mode_entity: '',
       immersion_entity: '',
+      dhw_temp_entity: '',
+      dhw_setpoint_entity: '',
       hours: 1,
       title: 'Heat Pump Timeline',
       width: 1000,
