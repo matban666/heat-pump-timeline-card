@@ -51,6 +51,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: config.title || 'Heat Pump Timeline',
       width: config.width || 1000,
       height: config.height || 400,
+      power_in_offset: config.power_in_offset || 0, // Time offset in seconds for power_in data
       // Required entities
       power_in_entity: config.power_in_entity,
       power_out_entity: config.power_out_entity,
@@ -148,8 +149,13 @@ class HeatPumpTimelineCard extends HTMLElement {
       const historyResults = await Promise.all(historyPromises);
 
       // Parse history into data structure with unit conversion
-      const power_in = this.parseHistory(historyResults[0], this._powerInFactor);
+      let power_in = this.parseHistory(historyResults[0], this._powerInFactor);
       const power_out = this.parseHistory(historyResults[1], this._powerOutFactor);
+
+      // Apply time offset to power_in data if configured
+      if (this.config.power_in_offset !== 0) {
+        power_in = this.applyTimeOffset(power_in, this.config.power_in_offset);
+      }
       const flow_temp = this.config.flow_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_temp_entity)]) : [];
       const return_temp = this.config.return_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.return_temp_entity)]) : [];
       const outside_temp = this.config.outside_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.outside_temp_entity)]) : [];
@@ -245,6 +251,18 @@ class HeatPumpTimelineCard extends HTMLElement {
     dataPoints.sort((a, b) => a.time - b.time);
 
     return dataPoints;
+  }
+
+  applyTimeOffset(dataPoints, offsetSeconds) {
+    // Apply a time offset (in seconds) to all data points
+    // Positive offset shifts data forward in time, negative shifts backward
+    if (!dataPoints || dataPoints.length === 0 || offsetSeconds === 0) return dataPoints;
+
+    const offsetMs = offsetSeconds * 1000;
+    return dataPoints.map(point => ({
+      ...point,
+      time: new Date(point.time.getTime() + offsetMs)
+    }));
   }
 
   parseModeHistory(historyData) {
@@ -1735,6 +1753,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: 'Heat Pump Timeline',
       width: 1000,
       height: 400,
+      power_in_offset: 0,
     };
   }
 }
