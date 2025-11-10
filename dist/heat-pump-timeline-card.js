@@ -18,7 +18,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       // Debounce resize events
       clearTimeout(this._resizeTimeout);
       this._resizeTimeout = setTimeout(() => {
-        if (this._data && this.detectPanelView()) {
+        if (this._data) {
           this._hasMeasuredHeight = false; // Reset measurement flag on resize
           this.renderChart(this._data);
         }
@@ -51,6 +51,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: config.title || 'Heat Pump Timeline',
       width: config.width || 1000,
       height: config.height || 400,
+      min_height: config.min_height || 200,
       // Time offsets in seconds for all metrics (positive = shift forward, negative = shift backward)
       power_in_offset: config.power_in_offset || 0,
       power_out_offset: config.power_out_offset || 0,
@@ -573,14 +574,16 @@ class HeatPumpTimelineCard extends HTMLElement {
         const label = item.getAttribute('data-label');
         if (!label) return;
 
-        // Toggle visibility
+        // Toggle visibility and update the class for immediate feedback
         if (this._hiddenLines.has(label)) {
           this._hiddenLines.delete(label);
+          item.classList.remove('hidden');
         } else {
           this._hiddenLines.add(label);
+          item.classList.add('hidden');
         }
 
-        // Re-render chart with current data
+        // Re-render chart with current data to hide/show the actual line
         if (this._data) {
           this.renderChart(this._data);
         }
@@ -1112,22 +1115,31 @@ class HeatPumpTimelineCard extends HTMLElement {
     // Render the card structure (controls, legend, info panel) with an empty chart container
     // This allows us to measure the container before rendering the actual SVG
 
-    // Calculate COP values for info panel
-    const totalEnergyIn = this.calculateEnergy(data.power_in, data.startTime, data.endTime);
-    const totalEnergyOut = this.calculateEnergy(data.power_out, data.startTime, data.endTime);
-    const windowCOP = totalEnergyIn > 0 ? totalEnergyOut / totalEnergyIn : 0;
-
+    // Initialize all energy and SCOP values
+    let totalEnergyIn = 0;
+    let totalEnergyOut = 0;
+    let windowCOP = 0;
+    let chEnergyIn = 0;
+    let chEnergyOut = 0;
+    let dhwEnergyIn = 0;
+    let dhwEnergyOut = 0;
     let chSCOP = 0;
     let dhwSCOP = 0;
-    if (data.mode && data.mode.length > 0) {
-      const chEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'CH');
-      const chEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'CH');
-      chSCOP = chEnergyIn > 0 ? chEnergyOut / chEnergyIn : 0;
 
-      const dhwEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'DHW');
-      const dhwEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'DHW');
-      dhwSCOP = dhwEnergyIn > 0 ? dhwEnergyOut / dhwEnergyIn : 0;
+    // Calculate energy values
+    totalEnergyIn = this.calculateEnergy(data.power_in, data.startTime, data.endTime);
+    totalEnergyOut = this.calculateEnergy(data.power_out, data.startTime, data.endTime);
+    windowCOP = totalEnergyIn > 0 ? totalEnergyOut / totalEnergyIn : 0;
+
+    if (data.mode && data.mode.length > 0) {
+      chEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'CH');
+      chEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'CH');
+      dhwEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'DHW');
+      dhwEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'DHW');
     }
+
+    chSCOP = chEnergyIn > 0 ? chEnergyOut / chEnergyIn : 0;
+    dhwSCOP = dhwEnergyIn > 0 ? dhwEnergyOut / dhwEnergyIn : 0;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -1141,7 +1153,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         }
         .chart-container-wrapper {
           padding: 8px;
-          flex: 1;
+          flex: 1 1 auto;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -1157,7 +1169,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         .chart-container {
           position: relative;
           width: 100%;
-          flex: 1;
+          flex: 1 1 auto;
           min-height: 0;
           display: flex;
           flex-direction: column;
@@ -1215,23 +1227,30 @@ class HeatPumpTimelineCard extends HTMLElement {
           height: 3px;
           border-radius: 2px;
         }
-        .info-panel {
+        .energy-panel {
           display: flex;
-          justify-content: center;
+          justify-content: space-around;
           margin-top: 8px;
           padding: 8px 12px;
           background: var(--secondary-background-color);
           border-radius: 8px;
           flex-shrink: 0;
         }
-        .info-item { text-align: center; padding: 0 20px; }
-        .info-label {
-          font-size: 11px;
-          color: var(--secondary-text-color);
+        .energy-column {
+          text-align: center;
+        }
+        .energy-header {
+          font-size: 12px;
+          font-weight: bold;
+          color: var(--primary-text-color);
           margin-bottom: 4px;
         }
-        .info-value {
-          font-size: 20px;
+        .energy-label {
+          font-size: 11px;
+          color: var(--secondary-text-color);
+        }
+        .energy-value {
+          font-size: 14px;
           font-weight: bold;
           color: var(--primary-text-color);
         }
@@ -1249,7 +1268,7 @@ class HeatPumpTimelineCard extends HTMLElement {
           cursor: crosshair;
         }
       </style>
-      <ha-card>
+      <ha-card style="min-height: ${this.config.min_height || 200}px;">
         ${this.renderControls()}
         <div class="chart-container-wrapper">
           <div class="chart-title">${this.config.title}</div>
@@ -1263,28 +1282,34 @@ class HeatPumpTimelineCard extends HTMLElement {
             <div class="legend-item ${this._hiddenLines.has('Return Temp') ? 'hidden' : ''}" data-label="Return Temp"><div class="legend-color" style="background: #2ecc71;"></div><span>Return Temp</span></div>
             <div class="legend-item ${this._hiddenLines.has('Outside Temp') ? 'hidden' : ''}" data-label="Outside Temp"><div class="legend-color" style="background: #9b59b6;"></div><span>Outside Temp</span></div>
             <div class="legend-item ${this._hiddenLines.has('Room Temp') ? 'hidden' : ''}" data-label="Room Temp"><div class="legend-color" style="background: #34495e;"></div><span>Room Temp</span></div>
-            <div class="legend-item ${this._hiddenLines.has('Setpoint') ? 'hidden' : ''}" data-label="Setpoint"><div class="legend-color" style="background: #95a5a6;"></div><span>Setpoint</span></div>
-            <div class="legend-item ${this._hiddenLines.has('Weather Curve Setpoint') ? 'hidden' : ''}" data-label="Weather Curve Setpoint"><div class="legend-color" style="background: #16a085;"></div><span>Weather Curve</span></div>
-            <div class="legend-item ${this._hiddenLines.has('Flow Setpoint') ? 'hidden' : ''}" data-label="Flow Setpoint"><div class="legend-color" style="background: #e67e22;"></div><span>Flow Setpoint</span></div>
+            <div class="legend-item ${this._hiddenLines.has('Setpoint') ? 'hidden' : ''}" data-label="Setpoint"><div class="legend-color" style="border-bottom: 1px dashed #95a5a6;"></div><span>Setpoint</span></div>
+            <div class="legend-item ${this._hiddenLines.has('Weather Curve Setpoint') ? 'hidden' : ''}" data-label="Weather Curve Setpoint"><div class="legend-color" style="border-bottom: 1px dashed #16a085;"></div><span>Weather Curve</span></div>
+            <div class="legend-item ${this._hiddenLines.has('Flow Setpoint') ? 'hidden' : ''}" data-label="Flow Setpoint"><div class="legend-color" style="border-bottom: 1px dashed #e67e22;"></div><span>Flow Setpoint</span></div>
             <div class="legend-item ${this._hiddenLines.has('Flow Rate') ? 'hidden' : ''}" data-label="Flow Rate"><div class="legend-color" style="background: #1abc9c;"></div><span>Flow Rate</span></div>
             <div class="legend-item ${this._hiddenLines.has('DHW Temp') ? 'hidden' : ''}" data-label="DHW Temp"><div class="legend-color" style="background: #c0392b;"></div><span>DHW Temp</span></div>
-            <div class="legend-item ${this._hiddenLines.has('DHW Setpoint') ? 'hidden' : ''}" data-label="DHW Setpoint"><div class="legend-color" style="background: #e8b4b8;"></div><span>DHW Setpoint</span></div>
+            <div class="legend-item ${this._hiddenLines.has('DHW Setpoint') ? 'hidden' : ''}" data-label="DHW Setpoint"><div class="legend-color" style="border-bottom: 1px dashed #e8b4b8;"></div><span>DHW Setpoint</span></div>
             <div class="legend-item ${this._hiddenLines.has('Heat Output') ? 'hidden' : ''}" data-label="Heat Output"><div class="legend-color" style="background: rgba(241, 196, 15, 0.3);"></div><span>Heat Output</span></div>
             <div class="legend-item ${this._hiddenLines.has('Electricity In') ? 'hidden' : ''}" data-label="Electricity In"><div class="legend-color" style="background: rgba(52, 152, 219, 0.3);"></div><span>Electricity In</span></div>
             <div class="legend-item ${this._hiddenLines.has('Immersion') ? 'hidden' : ''}" data-label="Immersion"><div class="legend-color" style="background: rgba(155, 89, 182, 0.3);"></div><span>Immersion</span></div>
           </div>
-          <div class="info-panel">
-            <div class="info-item">
-              <div class="info-label">CH SCOP</div>
-              <div class="info-value">${chSCOP > 0 ? chSCOP.toFixed(2) : '-'}</div>
+          <div class="energy-panel">
+            <div class="energy-column">
+              <div class="energy-header">CH</div>
+              <span class="energy-label">In: </span><span class="energy-value">${chEnergyIn.toFixed(2)} kWh</span><br>
+              <span class="energy-label">Out: </span><span class="energy-value">${chEnergyOut.toFixed(2)} kWh</span><br>
+              <span class="energy-label">SCOP: </span><span class="energy-value">${chSCOP > 0 ? chSCOP.toFixed(2) : '-'}</span>
             </div>
-            <div class="info-item">
-              <div class="info-label">DHW SCOP</div>
-              <div class="info-value">${dhwSCOP > 0 ? dhwSCOP.toFixed(2) : '-'}</div>
+            <div class="energy-column">
+              <div class="energy-header">DHW</div>
+              <span class="energy-label">In: </span><span class="energy-value">${dhwEnergyIn.toFixed(2)} kWh</span><br>
+              <span class="energy-label">Out: </span><span class="energy-value">${dhwEnergyOut.toFixed(2)} kWh</span><br>
+              <span class="energy-label">SCOP: </span><span class="energy-value">${dhwSCOP > 0 ? dhwSCOP.toFixed(2) : '-'}</span>
             </div>
-            <div class="info-item">
-              <div class="info-label">Combined SCOP</div>
-              <div class="info-value">${windowCOP.toFixed(2)}</div>
+            <div class="energy-column">
+              <div class="energy-header">Combined</div>
+              <span class="energy-label">In: </span><span class="energy-value">${totalEnergyIn.toFixed(2)} kWh</span><br>
+              <span class="energy-label">Out: </span><span class="energy-value">${totalEnergyOut.toFixed(2)} kWh</span><br>
+              <span class="energy-label">SCOP: </span><span class="energy-value">${windowCOP.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -1312,45 +1337,22 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Calculate width and height: measure container in panel mode, otherwise use config values
     let width, height;
-    if (isPanel) {
-      // In panel mode, measure the actual available space
-      if (chartContainer.clientHeight > 0 && chartContainer.clientWidth > 0) {
-        // Use measured dimensions from container
-        width = chartContainer.clientWidth;
-        height = chartContainer.clientHeight;
-      } else {
-        // Container exists but has no dimensions yet - wait for layout
-        requestAnimationFrame(() => this.renderChart(data));
-        return;
-      }
+    // Always use the container's actual dimensions. This makes the card responsive
+    // in both panel and masonry modes. The `height` and `width` config options
+    // will no longer have a direct effect, as the card will adapt to its container.
+    if (chartContainer.clientWidth > 0 && chartContainer.clientHeight > 0) {
+      width = chartContainer.clientWidth;
+      height = chartContainer.clientHeight;
     } else {
-      // Masonry mode: use configured dimensions
-      width = this.config.width;
-      height = this.config.height;
+      // The container isn't ready yet. Wait for the next animation frame and retry.
+      requestAnimationFrame(() => this.renderChart(data));
+      return;
     }
 
     const padding = { top: 40, right: 60, bottom: 60, left: 60 };
 
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
-
-    // Calculate COP for the window (combined)
-    const totalEnergyIn = this.calculateEnergy(data.power_in, data.startTime, data.endTime);
-    const totalEnergyOut = this.calculateEnergy(data.power_out, data.startTime, data.endTime);
-    const windowCOP = totalEnergyIn > 0 ? totalEnergyOut / totalEnergyIn : 0;
-
-    // Calculate mode-specific SCOP values
-    let chSCOP = 0;
-    let dhwSCOP = 0;
-    if (data.mode && data.mode.length > 0) {
-      const chEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'CH');
-      const chEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'CH');
-      chSCOP = chEnergyIn > 0 ? chEnergyOut / chEnergyIn : 0;
-
-      const dhwEnergyIn = this.calculateEnergyByMode(data.power_in, data.mode, 'DHW');
-      const dhwEnergyOut = this.calculateEnergyByMode(data.power_out, data.mode, 'DHW');
-      dhwSCOP = dhwEnergyIn > 0 ? dhwEnergyOut / dhwEnergyIn : 0;
-    }
 
     // Time scale
     const timeExtent = [data.startTime.getTime(), data.endTime.getTime()];
@@ -1383,11 +1385,11 @@ class HeatPumpTimelineCard extends HTMLElement {
     const scaleYPower = (value) => height - padding.bottom - (value / powerMax) * chartHeight;
 
     // Generate time axis labels
-    const timeLabels = this.generateTimeLabels(data.startTime, data.endTime, this.config.hours);
+    const timeLabels = this.generateTimeLabels(data.startTime, data.endTime, chartWidth);
 
     // Build SVG content
     const svg = `
-      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
         <!-- Grid lines -->
         ${this.renderGrid(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
 
@@ -1450,7 +1452,7 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // DHW mode rectangles (full height, translucent)
     if (data.mode && data.mode.length > 0) {
-      areas += this.renderDHWPeriods(data.mode, scaleX, height, padding);
+      areas += this.renderDHWPeriods(data.mode, scaleX, height, padding, data.endTime);
     }
 
     // Heat output (yellow)
@@ -1471,7 +1473,7 @@ class HeatPumpTimelineCard extends HTMLElement {
     return areas;
   }
 
-  renderDHWPeriods(modeData, scaleX, height, padding) {
+  renderDHWPeriods(modeData, scaleX, height, padding, endTime) {
     if (modeData.length === 0) {
       return '';
     }
@@ -1496,9 +1498,9 @@ class HeatPumpTimelineCard extends HTMLElement {
       }
     }
 
-    // If still in DHW mode at the end of the data
-    if (dhwStart && modeData.length > 0) {
-      const dhwEnd = modeData[modeData.length - 1].time;
+    // If a DHW period started but hasn't finished, draw it to the end of the chart
+    if (dhwStart) {
+      const dhwEnd = endTime;
       rectangles += this.renderDHWRectangle(dhwStart, dhwEnd, scaleX, height, padding);
     }
 
@@ -1633,51 +1635,65 @@ class HeatPumpTimelineCard extends HTMLElement {
             class="axis-line" stroke-width="2" />
     `;
 
+    // Y-axis label
+    const yAxisLabelX = padding.left - 40; // Further left from the ticks
+    const yAxisLabelY = height / 2; // Vertically centered
+    axes += `
+      <text x="${yAxisLabelX}" y="${yAxisLabelY}"
+            text-anchor="middle" alignment-baseline="middle"
+            transform="rotate(-90, ${yAxisLabelX}, ${yAxisLabelY})"
+            class="axis-label">
+        ºC / l/min
+      </text>
+    `;
+
     return axes;
   }
 
-  generateTimeLabels(startTime, endTime, hours) {
+  generateTimeLabels(startTime, endTime, chartWidth) {
     const labels = [];
     const durationMs = endTime.getTime() - startTime.getTime();
     const durationHours = durationMs / (1000 * 60 * 60);
     const durationMinutes = durationMs / (1000 * 60);
     const durationDays = durationMs / (1000 * 60 * 60 * 24);
 
-    // Determine appropriate number of labels based on duration
-    let numLabels;
+    // Estimate the maximum number of labels that can fit based on the available width
+    const typicalLabelWidth = 50; // A reasonable pixel estimate for a "HH:MM" or "DD/MM" label
+    const maxLabelsForWidth = Math.floor(chartWidth / typicalLabelWidth);
+
+    // Determine an ideal number of labels based on the time duration
+    let numLabelsForDuration;
     if (durationMinutes < 30) {
-      numLabels = 6; // Every 5 minutes for < 30 min
+      numLabelsForDuration = 6;
     } else if (durationHours < 3) {
-      numLabels = 8; // Good granularity for short periods
+      numLabelsForDuration = 8;
     } else if (durationHours < 12) {
-      numLabels = 10;
+      numLabelsForDuration = 10;
     } else if (durationHours < 48) {
-      numLabels = 12;
+      numLabelsForDuration = 12;
     } else if (durationDays < 14) {
-      numLabels = 14;
+      numLabelsForDuration = 14;
     } else {
-      numLabels = Math.min(Math.ceil(durationDays / 2), 20); // One label per 2 days, max 20
+      numLabelsForDuration = Math.min(Math.ceil(durationDays / 2), 20);
     }
 
-    for (let i = 0; i <= numLabels; i++) {
-      const time = new Date(startTime.getTime() + (durationMs * i / numLabels));
+    // Use the smaller of the two calculated numbers to prevent overlap, ensuring at least 2 labels
+    const numLabels = Math.max(2, Math.min(numLabelsForDuration, maxLabelsForWidth));
+
+    for (let i = 0; i < numLabels; i++) {
+      const time = new Date(startTime.getTime() + (durationMs * i / (numLabels - 1)));
 
       // Determine format based on actual duration
       let label;
       if (durationMinutes < 30) {
-        // Show HH:MM:SS for very short durations (< 30 minutes)
         label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}:${time.getSeconds().toString().padStart(2, '0')}`;
       } else if (durationHours < 3) {
-        // Show HH:MM for short durations (< 3 hours)
         label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
       } else if (durationHours < 48) {
-        // Show HH:MM for medium durations (< 48 hours)
         label = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
       } else if (durationDays < 90) {
-        // Show DD/MM for longer durations (< 90 days)
         label = `${time.getDate().toString().padStart(2, '0')}/${(time.getMonth() + 1).toString().padStart(2, '0')}`;
       } else {
-        // Show DD/MM/YY for very long durations (>= 90 days)
         label = `${time.getDate().toString().padStart(2, '0')}/${(time.getMonth() + 1).toString().padStart(2, '0')}/${time.getFullYear().toString().slice(-2)}`;
       }
 
@@ -1778,6 +1794,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       title: 'Heat Pump Timeline',
       width: 1000,
       height: 400,
+      min_height: 200,
       // Time offsets in seconds (positive = shift forward, negative = shift backward)
       power_in_offset: 0,
       power_out_offset: 0,
