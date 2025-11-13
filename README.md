@@ -1,6 +1,6 @@
 # Heat Pump Timeline Card
 
-A custom Lovelace card for Home Assistant that displays heat pump performance metrics in an interactive timeline chart with advanced features like zoom, mode tracking, and SCOP calculations.
+A custom Lovelace card for Home Assistant that displays heat pump performance metrics in an interactive timeline chart with advanced features like zoom, mode tracking, and SCOP calculations.  Developed entirely using Claude Code and Gemini CLI.  Started orignially by giving Claude Code a screen shot of Emoncms char and asking it if it understood it and if it could make a Home Assistant card.  It has subsequently been improved incrementally with Claude Code and Gemini.  This is intended as a convenient HA visualisation for data from tools like [Emoncms](https://emoncms.org/) and [OpenEnergyMonitor](https://openenergymonitor.org/).
 
 ![Heat Pump Timeline Card](screenshots/main-view.png)
 
@@ -65,8 +65,8 @@ power_out_entity: sensor.heat_pump_power_output
 type: custom:heat-pump-timeline-card
 title: Heat Pump Performance
 hours: 24  # Time range in hours (default: 1)
-width: 1000  # Chart width in pixels (default: 1000)
-height: 400  # Chart height in pixels (default: 400)
+min_height: 200 # Chart minimum height in pixels (default: 200)
+line_width: 1.0 # Width of the metric lines (default: 1.0)
 
 # Required entities
 power_in_entity: sensor.heat_pump_power_input
@@ -88,6 +88,9 @@ flow_rate_entity: sensor.heat_pump_flow_rate
 
 # Optional mode tracking (for DHW visualization)
 mode_entity: sensor.heat_pump_mode
+
+# Optional mode tracking (for defrost visualization)
+defrost_entity: sensor.heat_pump_defrost_mode
 
 # Optional immersion heater entity
 immersion_entity: sensor.immersion_heater_power
@@ -111,6 +114,7 @@ mode_offset: 0
 immersion_offset: 0
 dhw_temp_offset: 0
 dhw_setpoint_offset: 0
+defrost_offset: 0
 ```
 
 ## Time Offset Configuration
@@ -162,6 +166,7 @@ mode_offset: 0             # Operating mode
 immersion_offset: 0        # Immersion heater power
 dhw_temp_offset: 0         # DHW tank temperature
 dhw_setpoint_offset: 0     # DHW setpoint
+defrost_offset: 0          # Defrost mode
 ```
 
 ### Example: Compensating for Power Sensor Lag
@@ -215,6 +220,7 @@ All temperature entities should report in Celsius (°C):
 Other optional entities:
 - **flow_rate_entity**: Water flow rate (l/min)
 - **mode_entity**: Heat pump operating mode (string values like "CH", "DHW", "Idle")
+- **defrost_entity**: Defrost mode sensor (string values "ON" or "OFF")
 - **immersion_entity**: Immersion heater power (W or kW)
 
 ## Features in Detail
@@ -258,11 +264,13 @@ Hover over any line to see contextual information:
 - **Setpoints**: Shows Weather Curve, Flow Setpoint, and Modulation
 - **Room Temp**: Shows Room Temp, Setpoint, and Overshoot
 - **DHW rectangles**: Shows start time, end time, and duration
+- **Defrost rectangles**: Shows start time, end time, and duration
 
 ### Mode Visualization
 
-When `mode_entity` is configured:
+When `mode_entity` or `defrost_entity` is configured:
 - DHW periods appear as translucent orange rectangles
+- Defrost cycles appear as translucent blue rectangles
 - Hover to see duration and timing
 - SCOP values are calculated separately for each mode
 
@@ -318,7 +326,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Credits
 
-- Developed by [@matban666](https://github.com/matban666) and Claude Code
+- Developed by [@matban666](https://github.com/matban666), Claude Code and Gemini
 - Heavily inspired by [Emoncms](https://emoncms.org/) and [OpenEnergyMonitor](https://openenergymonitor.org/)
 
 ## Screenshots
@@ -327,6 +335,11 @@ MIT License - see [LICENSE](LICENSE) file for details
 The interactive timeline chart showing temperature lines, power areas, and DHW mode periods:
 
 ![Main View](screenshots/main-view.png)
+
+### Mobile View
+Portrait view as a 1 Card Pannel Dashboard on a Samsung S23 Ultra:
+
+![Main View](screenshots/mobile-view.jpg)
 
 ### Tooltip: Flow and Return Temperatures
 Hover over flow/return temperature lines to see Delta-T and overshoot calculations:
@@ -337,3 +350,8 @@ Hover over flow/return temperature lines to see Delta-T and overshoot calculatio
 Hover over power areas to see electrical input, heat output, and real-time COP:
 
 ![Power and COP Tooltip](screenshots/tooltip-power-and-cop.png)
+
+### Tooltip: Defrost
+Hover over defrost areas to show defrost duration:
+
+![Power and COP Tooltip](screenshots/tooltip-defrost.png)

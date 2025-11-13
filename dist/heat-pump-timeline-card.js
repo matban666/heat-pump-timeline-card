@@ -52,6 +52,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       width: config.width || 1000,
       height: config.height || 400,
       min_height: config.min_height || 200,
+      line_width: config.line_width || 1.0,
       // Time offsets in seconds for all metrics (positive = shift forward, negative = shift backward)
       power_in_offset: config.power_in_offset || 0,
       power_out_offset: config.power_out_offset || 0,
@@ -67,6 +68,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       immersion_offset: config.immersion_offset || 0,
       dhw_temp_offset: config.dhw_temp_offset || 0,
       dhw_setpoint_offset: config.dhw_setpoint_offset || 0,
+      defrost_offset: config.defrost_offset || 0,
       // Required entities
       power_in_entity: config.power_in_entity,
       power_out_entity: config.power_out_entity,
@@ -80,6 +82,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       flow_setpoint_entity: config.flow_setpoint_entity,
       flow_rate_entity: config.flow_rate_entity,
       mode_entity: config.mode_entity,
+      defrost_entity: config.defrost_entity,
       immersion_entity: config.immersion_entity,
       dhw_temp_entity: config.dhw_temp_entity,
       dhw_setpoint_entity: config.dhw_setpoint_entity,
@@ -135,6 +138,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         this.config.flow_setpoint_entity,
         this.config.flow_rate_entity,
         this.config.mode_entity,
+        this.config.defrost_entity,
         this.config.immersion_entity,
         this.config.dhw_temp_entity,
         this.config.dhw_setpoint_entity,
@@ -175,6 +179,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       let flow_setpoint = this.config.flow_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_setpoint_entity)]) : [];
       let flow_rate = this.config.flow_rate_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.flow_rate_entity)]) : [];
       let mode = this.config.mode_entity ? this.parseModeHistory(historyResults[entitiesToFetch.indexOf(this.config.mode_entity)]) : [];
+      let defrost = this.config.defrost_entity ? this.parseModeHistory(historyResults[entitiesToFetch.indexOf(this.config.defrost_entity)]) : [];
       let immersion = this.config.immersion_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.immersion_entity)], this._immersionFactor) : [];
       let dhw_temp = this.config.dhw_temp_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_temp_entity)]) : [];
       let dhw_setpoint = this.config.dhw_setpoint_entity ? this.parseHistory(historyResults[entitiesToFetch.indexOf(this.config.dhw_setpoint_entity)]) : [];
@@ -191,6 +196,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       flow_setpoint = this.applyTimeOffset(flow_setpoint, this.config.flow_setpoint_offset);
       flow_rate = this.applyTimeOffset(flow_rate, this.config.flow_rate_offset);
       mode = this.applyTimeOffset(mode, this.config.mode_offset);
+      defrost = this.applyTimeOffset(defrost, this.config.defrost_offset);
       immersion = this.applyTimeOffset(immersion, this.config.immersion_offset);
       dhw_temp = this.applyTimeOffset(dhw_temp, this.config.dhw_temp_offset);
       dhw_setpoint = this.applyTimeOffset(dhw_setpoint, this.config.dhw_setpoint_offset);
@@ -210,6 +216,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         dhw_temp: this.extendToEndTime(dhw_temp, endTime),
         dhw_setpoint: this.extendToEndTime(dhw_setpoint, endTime),
         mode,
+        defrost,
         immersion,
         startTime,
         endTime,
@@ -411,7 +418,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       });
       timeBoundariesHTML = `
         <div style="font-size: 11px; color: var(--secondary-text-color); margin-top: 8px;">
-          <strong>Time Window:</strong> ${startStr} → ${endStr}
+          <strong>Time Window:</strong> ${startStr} to ${endStr}
         </div>
       `;
     }
@@ -635,11 +642,77 @@ class HeatPumpTimelineCard extends HTMLElement {
           <div style="color: #e67e22; font-weight: bold; margin-bottom: 4px;">DHW Mode</div>
           <div style="font-size: 12px;">Start: ${startTimeStr}</div>
           <div style="font-size: 12px;">End: ${endTimeStr}</div>
-          <div style="font-size: 12px; color: #3498db; font-weight: bold; margin-top: 2px;">Duration: ${durationStr}</div>
         `;
 
         // Position tooltip
-        tooltip.style.left = (e.clientX - containerRect.left + 15) + 'px';
+        const pointerX = e.clientX - containerRect.left;
+        const tooltipWidth = tooltip.offsetWidth;
+        if (pointerX > containerRect.width * 2 / 3) {
+          tooltip.style.left = (pointerX - tooltipWidth - 15) + 'px';
+        } else {
+          tooltip.style.left = (pointerX + 15) + 'px';
+        }
+        tooltip.style.top = (e.clientY - containerRect.top - 15) + 'px';
+      });
+
+      rect.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible');
+      });
+    });
+  }
+
+  setupDefrostTooltips() {
+    const tooltip = this.shadowRoot.querySelector('.tooltip');
+    const defrostPeriods = this.shadowRoot.querySelectorAll('.defrost-period');
+
+    defrostPeriods.forEach(rect => {
+      const startStr = rect.getAttribute('data-start');
+      const endStr = rect.getAttribute('data-end');
+      const durationMs = parseInt(rect.getAttribute('data-duration'));
+
+      const startTime = new Date(startStr);
+      const endTime = new Date(endStr);
+
+      rect.addEventListener('mouseenter', () => {
+        tooltip.classList.add('visible');
+      });
+
+      rect.addEventListener('mousemove', (e) => {
+        const containerRect = this.shadowRoot.querySelector('.chart-container').getBoundingClientRect();
+
+        // Format times
+        const startTimeStr = startTime.toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+        const endTimeStr = endTime.toLocaleTimeString('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+
+        // Calculate duration
+        const durationMinutes = Math.floor(durationMs / 60000);
+        const durationSeconds = Math.round((durationMs % 60000) / 1000);
+        const durationStr = `${durationMinutes}m ${durationSeconds}s`;
+
+        // Show tooltip
+        tooltip.innerHTML = `
+          <div style="color: #3498db; font-weight: bold; margin-bottom: 4px;">Defrost Cycle</div>
+          <div style="font-size: 12px;">Start: ${startTimeStr}</div>
+          <div style="font-size: 12px;">End: ${endTimeStr}</div>
+          <div style="font-size: 12px; color: #9b59b6; font-weight: bold; margin-top: 2px;">Duration: ${durationStr}</div>
+        `;
+
+        // Position tooltip
+        const pointerX = e.clientX - containerRect.left;
+        const tooltipWidth = tooltip.offsetWidth;
+        if (pointerX > containerRect.width * 2 / 3) {
+          tooltip.style.left = (pointerX - tooltipWidth - 15) + 'px';
+        } else {
+          tooltip.style.left = (pointerX + 15) + 'px';
+        }
         tooltip.style.top = (e.clientY - containerRect.top - 15) + 'px';
       });
 
@@ -706,7 +779,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         tooltip.classList.add('visible');
         // Embiggen the line on hover
         if (visibleLine) {
-          visibleLine.setAttribute('stroke-width', '3');
+          visibleLine.setAttribute('stroke-width', this.config.line_width * 2);
         }
       });
 
@@ -864,7 +937,13 @@ class HeatPumpTimelineCard extends HTMLElement {
         }
 
         // Position tooltip
-        tooltip.style.left = (e.clientX - containerRect.left + 15) + 'px';
+        const pointerX = e.clientX - containerRect.left;
+        const tooltipWidth = tooltip.offsetWidth;
+        if (pointerX > containerRect.width * 2 / 3) {
+          tooltip.style.left = (pointerX - tooltipWidth - 15) + 'px';
+        } else {
+          tooltip.style.left = (pointerX + 15) + 'px';
+        }
         tooltip.style.top = (e.clientY - containerRect.top - 15) + 'px';
       });
 
@@ -872,7 +951,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         tooltip.classList.remove('visible');
         // Reset the line width
         if (visibleLine) {
-          visibleLine.setAttribute('stroke-width', '1.5');
+          visibleLine.setAttribute('stroke-width', this.config.line_width);
         }
       });
     });
@@ -975,7 +1054,13 @@ class HeatPumpTimelineCard extends HTMLElement {
         }
 
         // Position tooltip
-        tooltip.style.left = (e.clientX - containerRect.left + 15) + 'px';
+        const pointerX = e.clientX - containerRect.left;
+        const tooltipWidth = tooltip.offsetWidth;
+        if (pointerX > containerRect.width * 2 / 3) {
+          tooltip.style.left = (pointerX - tooltipWidth - 15) + 'px';
+        } else {
+          tooltip.style.left = (pointerX + 15) + 'px';
+        }
         tooltip.style.top = (e.clientY - containerRect.top - 15) + 'px';
       });
 
@@ -1349,7 +1434,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       return;
     }
 
-    const padding = { top: 40, right: 60, bottom: 60, left: 60 };
+    const padding = { top: 40, right: 50, bottom: 60, left: 50 };
 
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
@@ -1409,7 +1494,7 @@ class HeatPumpTimelineCard extends HTMLElement {
         ${this.renderLine(data.dhw_setpoint, scaleX, scaleYTemp, '#e8b4b8', 'DHW Setpoint', '5,5')}
 
         <!-- Axes -->
-        ${this.renderAxes(scaleX, scaleYTemp, timeLabels, tempMin, tempMax, padding, width, height)}
+        ${this.renderAxes(scaleX, scaleYTemp, scaleYPower, timeLabels, tempMin, tempMax, powerMax, padding, width, height)}
       </svg>
     `;
 
@@ -1424,6 +1509,7 @@ class HeatPumpTimelineCard extends HTMLElement {
     // Set up event listeners for the chart
     this.setupLineTooltips(data, scaleX, scaleYTemp, timeExtent);
     this.setupDHWTooltips();
+    this.setupDefrostTooltips();
     this.setupZoomSelection(data, scaleX, padding, width);
   }
 
@@ -1453,6 +1539,11 @@ class HeatPumpTimelineCard extends HTMLElement {
     // DHW mode rectangles (full height, translucent)
     if (data.mode && data.mode.length > 0) {
       areas += this.renderDHWPeriods(data.mode, scaleX, height, padding, data.endTime);
+    }
+
+    // Defrost mode rectangles (full height, translucent)
+    if (data.defrost && data.defrost.length > 0) {
+      areas += this.renderDefrostPeriods(data.defrost, scaleX, height, padding, data.endTime);
     }
 
     // Heat output (yellow)
@@ -1507,6 +1598,71 @@ class HeatPumpTimelineCard extends HTMLElement {
     return rectangles;
   }
 
+  renderDefrostPeriods(defrostData, scaleX, height, padding, endTime) {
+    if (defrostData.length === 0) {
+      return '';
+    }
+
+    let rectangles = '';
+    let defrostStart = null;
+
+    // Find defrost periods
+    for (let i = 0; i < defrostData.length; i++) {
+      const defrost = defrostData[i];
+      const isDefrost = defrost.state && defrost.state.toLowerCase() === 'on';
+
+      if (isDefrost && !defrostStart) {
+        // Start of a defrost period
+        defrostStart = defrost.time;
+      } else if (!isDefrost && defrostStart) {
+        // End of a defrost period
+        const defrostEnd = defrost.time;
+        rectangles += this.renderDefrostRectangle(defrostStart, defrostEnd, scaleX, height, padding);
+        defrostStart = null;
+      }
+    }
+
+    // If a defrost period started but hasn't finished, draw it to the end of the chart
+    if (defrostStart) {
+      const defrostEnd = endTime;
+      rectangles += this.renderDefrostRectangle(defrostStart, defrostEnd, scaleX, height, padding);
+    }
+
+    return rectangles;
+  }
+
+  renderDefrostRectangle(startTime, endTime, scaleX, height, padding) {
+    const x1 = scaleX(startTime);
+    const x2 = scaleX(endTime);
+    const width = x2 - x1;
+    const rectHeight = height - padding.top - padding.bottom;
+
+    // Create unique ID for this defrost period
+    const defrostId = `defrost-${startTime.getTime()}`;
+
+    // Store start and end times as data attributes
+    const startStr = startTime.toISOString();
+    const endStr = endTime.toISOString();
+    const durationMs = endTime.getTime() - startTime.getTime();
+
+    // Render translucent rectangle
+    return `<rect
+      x="${x1}"
+      y="${padding.top}"
+      width="${width}"
+      height="${rectHeight}"
+      fill="rgba(52, 152, 219, 0.2)"
+      stroke="rgba(52, 152, 219, 0.5)"
+      stroke-width="1"
+      class="defrost-period"
+      data-defrost-id="${defrostId}"
+      data-start="${startStr}"
+      data-end="${endStr}"
+      data-duration="${durationMs}"
+      style="cursor: pointer;"
+    />`;
+  }
+  
   renderDHWRectangle(startTime, endTime, scaleX, height, padding) {
     const x1 = scaleX(startTime);
     const x2 = scaleX(endTime);
@@ -1593,12 +1749,12 @@ class HeatPumpTimelineCard extends HTMLElement {
     const hoverPath = `<path d="${pathData}" fill="none" stroke="transparent" stroke-width="10" class="line-hover" data-label="${label}" data-color="${color}" data-line-id="${lineId}" style="cursor: pointer;" />`;
 
     // Visible line with matching ID
-    const visiblePath = `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="1.5" ${strokeDash} class="line-visible" data-line-id="${lineId}" style="pointer-events: none; transition: stroke-width 0.15s ease;" />`;
+    const visiblePath = `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="${this.config.line_width}" ${strokeDash} class="line-visible" data-line-id="${lineId}" style="pointer-events: none; transition: stroke-width 0.15s ease;" />`;
 
     return hoverPath + visiblePath;
   }
 
-  renderAxes(scaleX, scaleY, timeLabels, tempMin, tempMax, padding, width, height) {
+  renderAxes(scaleX, scaleYTemp, scaleYPower, timeLabels, tempMin, tempMax, powerMax, padding, width, height) {
     const tempTicks = this.generateTicks(tempMin, tempMax, 8);
 
     let axes = '';
@@ -1616,11 +1772,23 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     // Temperature axis labels (left)
     tempTicks.forEach(tick => {
-      const y = scaleY(tick);
+      const y = scaleYTemp(tick);
       axes += `
         <text x="${padding.left - 10}" y="${y + 4}"
               text-anchor="end" class="axis-label">
           ${tick.toFixed(0)}
+        </text>
+      `;
+    });
+
+    // Power axis labels (right)
+    const powerTicks = this.generateTicks(0, powerMax / 1000, 8); // In kW
+    powerTicks.forEach(tick => {
+      const y = scaleYPower(tick * 1000); // scaleYPower expects Watts
+      axes += `
+        <text x="${width - padding.right + 10}" y="${y + 4}"
+              text-anchor="start" class="axis-label">
+          ${tick.toFixed(1)}
         </text>
       `;
     });
@@ -1630,20 +1798,35 @@ class HeatPumpTimelineCard extends HTMLElement {
       <line x1="${padding.left}" y1="${padding.top}"
             x2="${padding.left}" y2="${height - padding.bottom}"
             class="axis-line" stroke-width="2" />
+      <line x1="${width - padding.right}" y1="${padding.top}"
+            x2="${width - padding.right}" y2="${height - padding.bottom}"
+            class="axis-line" stroke-width="2" />
       <line x1="${padding.left}" y1="${height - padding.bottom}"
             x2="${width - padding.right}" y2="${height - padding.bottom}"
             class="axis-line" stroke-width="2" />
     `;
 
-    // Y-axis label
-    const yAxisLabelX = padding.left - 40; // Further left from the ticks
-    const yAxisLabelY = height / 2; // Vertically centered
+    // Y-axis label (left)
+    const yAxisLabelX = padding.left - 40;
+    const yAxisLabelY = height / 2;
     axes += `
       <text x="${yAxisLabelX}" y="${yAxisLabelY}"
             text-anchor="middle" alignment-baseline="middle"
             transform="rotate(-90, ${yAxisLabelX}, ${yAxisLabelY})"
             class="axis-label">
         ºC / l/min
+      </text>
+    `;
+
+    // Y-axis label (right)
+    const yAxisRightLabelX = width - padding.right + 45;
+    const yAxisRightLabelY = height / 2;
+    axes += `
+      <text x="${yAxisRightLabelX}" y="${yAxisRightLabelY}"
+            text-anchor="middle" alignment-baseline="middle"
+            transform="rotate(-90, ${yAxisRightLabelX}, ${yAxisRightLabelY})"
+            class="axis-label">
+        kW
       </text>
     `;
 
@@ -1795,6 +1978,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       width: 1000,
       height: 400,
       min_height: 200,
+      line_width: 1.0,
       // Time offsets in seconds (positive = shift forward, negative = shift backward)
       power_in_offset: 0,
       power_out_offset: 0,
