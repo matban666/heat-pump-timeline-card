@@ -337,9 +337,9 @@ The interactive timeline chart showing temperature lines, power areas, and DHW m
 ![Main View](screenshots/main-view.png)
 
 ### Mobile View
-Portrait view as a 1 Card Pannel Dashboard on a Samsung S23 Ultra:
+Portrait view as a 1 Card Panel Dashboard on a Samsung S23 Ultra:
 
-![Main View](screenshots/mobile-view.jpg)
+<img src="screenshots/mobile-view.jpg" width="33%">
 
 ### Tooltip: Flow and Return Temperatures
 Hover over flow/return temperature lines to see Delta-T and overshoot calculations:
