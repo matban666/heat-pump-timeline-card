@@ -1,6 +1,6 @@
 # Heat Pump Timeline Card
 
-A custom Lovelace card for Home Assistant that displays heat pump performance metrics in an interactive timeline chart with advanced features like zoom, mode tracking, and SCOP calculations.  Developed entirely using Claude Code and Gemini CLI.  Started orignially by giving Claude Code a screen shot of Emoncms char and asking it if it understood it and if it could make a Home Assistant card.  It has subsequently been improved incrementally with Claude Code and Gemini.  This is intended as a convenient HA visualisation for data from tools like [Emoncms](https://emoncms.org/) and [OpenEnergyMonitor](https://openenergymonitor.org/).
+A custom Lovelace card for Home Assistant that displays heat pump performance metrics in an interactive timeline chart with advanced features like zoom, mode tracking, and SCOP calculations.  Developed entirely using Claude Code and Gemini CLI.  Started orignially by giving Claude Code a screen shot of Emoncms char and asking it if it understood it and if it could make a Home Assistant card.  It has subsequently been improved incrementally with Claude Code and Gemini.  This is intended as a convenient HA visualisation for data from tools like [ESPAltherma](https://github.com/raomin/ESPAltherma) and [OpenEnergyMonitor](https://openenergymonitor.org/)/[Emoncms](https://emoncms.org/).
 
 ![Heat Pump Timeline Card](screenshots/main-view.png)
 
