@@ -50,8 +50,7 @@ class HeatPumpTimelineCard extends HTMLElement {
       hours: config.hours || 1,
       title: config.title || 'Heat Pump Timeline',
       width: config.width || 1000,
-      height: config.height || 400,
-      min_height: config.min_height || 200,
+      height: config.height, // No default, will be undefined if not set
       line_width: config.line_width || 1.0,
       // Time offsets in seconds for all metrics (positive = shift forward, negative = shift backward)
       power_in_offset: config.power_in_offset || 0,
@@ -1175,28 +1174,9 @@ class HeatPumpTimelineCard extends HTMLElement {
     chartContainer.addEventListener('mouseleave', handleMouseLeave);
   }
 
-  detectPanelView() {
-    // Try to detect if we're in a panel (1 card) view
-    // In panel mode, the card's parent hierarchy typically includes view-panel
-    let element = this.parentElement;
-    let depth = 0;
-    const maxDepth = 10;
 
-    while (element && depth < maxDepth) {
-      // Check for panel view indicators
-      if (element.tagName === 'HUI-PANEL-VIEW' ||
-          element.classList?.contains('panel') ||
-          element.getAttribute('type') === 'panel') {
-        return true;
-      }
-      element = element.parentElement;
-      depth++;
-    }
 
-    return false;
-  }
-
-  renderStructure(data, isPanel) {
+  renderStructure(data) {
     // Render the card structure (controls, legend, info panel) with an empty chart container
     // This allows us to measure the container before rendering the actual SVG
 
@@ -1228,13 +1208,17 @@ class HeatPumpTimelineCard extends HTMLElement {
 
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; height: 100%; }
+        :host {
+          display: block;
+          ${this.config.height === undefined ? 'height: 100%;' : ''}
+        }
         ha-card {
           padding: 0;
           position: relative;
           display: flex;
           flex-direction: column;
-          height: 100%;
+          ${this.config.height === undefined ? 'height: 100%;' : ''}
+          overflow: hidden;
         }
         .chart-container-wrapper {
           padding: 8px;
@@ -1353,7 +1337,7 @@ class HeatPumpTimelineCard extends HTMLElement {
           cursor: crosshair;
         }
       </style>
-      <ha-card style="min-height: ${this.config.min_height || 200}px;">
+      <ha-card style="${this.config.height !== undefined ? `height: ${this.config.height}px;` : ''}">
         ${this.renderControls()}
         <div class="chart-container-wrapper">
           <div class="chart-title">${this.config.title}</div>
@@ -1406,25 +1390,19 @@ class HeatPumpTimelineCard extends HTMLElement {
   }
 
   renderChart(data) {
-    // Detect if we're in a panel view by checking if this is likely the only card
-    const isPanel = this.detectPanelView();
-
     // Check if we have a container to measure
     const chartContainer = this.shadowRoot?.querySelector('.chart-container');
 
     // If container doesn't exist yet (first render), create structure and defer chart rendering
     if (!chartContainer) {
-      this.renderStructure(data, isPanel);
+      this.renderStructure(data);
       // Schedule chart rendering after structure is created
       requestAnimationFrame(() => this.renderChart(data));
       return;
     }
 
-    // Calculate width and height: measure container in panel mode, otherwise use config values
+    // Calculate width and height based on the container's actual dimensions.
     let width, height;
-    // Always use the container's actual dimensions. This makes the card responsive
-    // in both panel and masonry modes. The `height` and `width` config options
-    // will no longer have a direct effect, as the card will adapt to its container.
     if (chartContainer.clientWidth > 0 && chartContainer.clientHeight > 0) {
       width = chartContainer.clientWidth;
       height = chartContainer.clientHeight;
@@ -1976,8 +1954,6 @@ class HeatPumpTimelineCard extends HTMLElement {
       hours: 1,
       title: 'Heat Pump Timeline',
       width: 1000,
-      height: 400,
-      min_height: 200,
       line_width: 1.0,
       // Time offsets in seconds (positive = shift forward, negative = shift backward)
       power_in_offset: 0,
